@@ -119,6 +119,22 @@ class Ray:
         # Carry the full history forward, so a later turn sees an earlier one.
         self._messages = list(produced)
 
+        self._ground(turn)
+
+        # One corrective pass when grounding fails. A small model reliably writes a
+        # good answer and then cites it badly — inventing a tool name such as
+        # `[domain_intel]`, or omitting citations altogether. The tool output it
+        # needs is already in its context, so asking once is cheap and it fixes the
+        # answer rather than merely reporting it broken.
+        if self._needs_recite(turn):
+            turn.regrounded = True
+            self._recite(turn)
+
+        return turn
+
+    # --- grounding and the corrective pass --------------------------------
+
+    def _ground(self, turn: Turn) -> None:
         report = grounding.verify(self.conn, turn.answer)
         turn.grounding = {
             "ok": report.ok,
@@ -129,7 +145,58 @@ class Ray:
         uncited = grounding.warn_if_uncited(turn.answer)
         if uncited:
             turn.grounding["uncited_warning"] = uncited
-        return turn
+
+    def _needs_recite(self, turn: Turn) -> bool:
+        if turn.error or not turn.answer.strip():
+            return False
+        grounded = turn.grounding
+        if grounded.get("failures"):
+            return True
+        return bool(grounded.get("uncited_warning")) and grounded.get("citation_count") == 0
+
+    def _recite(self, turn: Turn) -> None:
+        """Ask once for the same answer with real citations. Never changes findings."""
+        failures = turn.grounding.get("failures") or []
+        if failures:
+            problem = (
+                "these citations do not match any row in the database: "
+                + ", ".join(failures[:8])
+            )
+        else:
+            problem = "your answer carries no citation at all"
+
+        correction = (
+            f"GROUNDING CHECK FAILED — {problem}.\n\n"
+            "Rewrite your previous answer. Keep every finding and every conclusion "
+            "exactly as they were; this is a citation problem, not a analysis "
+            "problem. Replace each unsupported reference with the real row citations "
+            "from the tool output already in this conversation.\n\n"
+            "A citation is one of these forms and nothing else:\n"
+            "  [msg:<8-char message id>]      [decision:<8-char message id>]\n"
+            "  [analyzer:<8-char id>/<analyzer name>]  [link:<8-char message id>]\n"
+            "  [remediation:<8-char message id>]       [user:<user id>]\n"
+            "  [mem:<memory id>]\n\n"
+            "A tool name in brackets, such as [domain_intel] or [find_messages], is "
+            "NOT a citation. Use the message ids the tools returned. Do not invent an "
+            "id, and do not cite an analyzer that did not run on that message. If a "
+            "claim has no row behind it, drop the claim rather than citing nothing."
+        )
+        self._messages.append({"role": "user", "content": correction})
+        try:
+            state = self.agent.invoke(
+                {"messages": self._messages},
+                config={"recursion_limit": MAX_ITERATIONS},
+            )
+        except Exception as error:  # noqa: BLE001
+            turn.grounding["recite_error"] = f"{type(error).__name__}: {error}"
+            return
+
+        produced = state.get("messages", [])
+        rewritten = _final_text(produced)
+        if rewritten.strip():
+            turn.answer = rewritten
+            self._messages = list(produced)
+            self._ground(turn)
 
     # --- memory confirmation gate (ADR-003 rule 2) ------------------------
 

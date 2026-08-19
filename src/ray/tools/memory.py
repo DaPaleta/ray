@@ -272,7 +272,10 @@ def remember(
     if proposal.rationale:
         lines.append(f"  rationale:   {proposal.rationale}")
     lines.append(
-        "Tell the analyst what you propose to remember and ask them to confirm it."
+        "Tell the analyst what you propose to remember and ask them to confirm it. "
+        "Do NOT cite this proposal_id as [mem:...] — no row exists until the analyst "
+        "confirms, so citing it now fails the grounding check. Quote the proposed "
+        "content in plain words instead."
     )
     return schemas.ToolResult(
         text="\n".join(lines),

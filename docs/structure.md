@@ -44,6 +44,10 @@ ray/
 │       ├── app.py                FastAPI application. Serves the page and the ask endpoint.
 │       └── index.html            The single-page portal. Self-contained. Renders the graph.
 │
+├── scripts/
+│   └── record_transcripts.py     Records the transcripts/ deliverable reproducibly.
+│                                 Uses a scratch database copy by default.
+│
 ├── tests/                        Unit tests. No test calls a model.
 │
 ├── transcripts/                  Saved runs. A submission deliverable.

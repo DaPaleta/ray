@@ -68,6 +68,9 @@ class Turn:
     model: str = ""
     started_at: str = field(default_factory=_now)
     error: str | None = None
+    # True when the grounding check failed and Ray was asked once to re-cite.
+    # Recorded so the transcript shows the correction rather than hiding it.
+    regrounded: bool = False
 
     # --- accumulation -----------------------------------------------------
 
@@ -126,6 +129,7 @@ class Turn:
             "model": self.model,
             "started_at": self.started_at,
             "error": self.error,
+            "regrounded": self.regrounded,
             "tool_calls": [c.to_dict() for c in self.calls],
             "subagents_used": self.subagents_used,
             "citations": self.all_citations,
@@ -190,6 +194,11 @@ class Turn:
                 f"- citations checked: {self.grounding.get('citation_count', 0)}",
                 f"- every citation resolves to a real row: **{ok}**",
             ]
+            if self.regrounded:
+                lines.append(
+                    "- the first answer failed this check, so Ray was asked once to "
+                    "re-cite from the tool output it already had"
+                )
             for failure in self.grounding.get("failures", []):
                 lines.append(f"- FAILED `{failure}`")
             lines.append("")
