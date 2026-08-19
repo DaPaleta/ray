@@ -10,7 +10,7 @@
 *This section is the answer to "what is done, how do I run it, and how do I request a
 change". It is updated at the end of every stage.*
 
-**Last updated:** session end. **All three tiers complete. 201 tests pass with no API
+**Last updated:** session end. **All three tiers complete. 206 tests pass with no API
 key.** `NOTES.md` is the submission write-up and the best place to start.
 
 ### What works right now
@@ -27,6 +27,7 @@ key.** `NOTES.md` is the submission write-up and the best place to start.
 | Capability 5b watchlist loop | working | `transcripts/07`: audit, propose, confirm, sweep |
 | Compiled adjudicator prompt | working | Loads with score 0.7458; baseline 0.6625 |
 | Portal, graph, trace, specialist badge | working | 11 tests; self-contained page verified |
+| Secret hygiene | working | 3 layers, 4 guards; see defect 6 |
 | Transcripts | 7 recorded | `transcripts/`, reproducible from `scripts/` |
 
 ### How to run it

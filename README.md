@@ -11,7 +11,7 @@ The organization is Acme Robotics. The primary domain is `acme.com`.
 
 ## Status
 
-Complete and working. **201 tests pass with no API key**, 11 tools, 3 specialist
+Complete and working. **206 tests pass with no API key**, 11 tools, 3 specialist
 subagents, 7 recorded transcripts, and a compiled adjudicator prompt.
 
 `NOTES.md` is the submission write-up and the best place to start.

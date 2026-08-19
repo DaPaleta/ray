@@ -43,7 +43,7 @@ export OCEAN_ANTHROPIC_KEY=...
 python -m ray                    # the portal, on http://127.0.0.1:8765
 python -m ray --ask "..."        # one question, writes a transcript
 python -m ray --check            # readiness, calls no model
-pytest -q                        # 201 tests, no key needed
+pytest -q                        # 206 tests, no key needed
 ```
 
 | Capability | Question it answers |
@@ -58,7 +58,7 @@ pytest -q                        # 201 tests, no key needed
 `transcripts/` holds a recorded run of each, reproducible with
 `python scripts/record_transcripts.py all`.
 
-**Scale:** 11 tools, 3 subagents, 201 tests, ~5,100 lines of source and ~2,400 lines
+**Scale:** 11 tools, 3 subagents, 206 tests, ~5,100 lines of source and ~2,400 lines
 of tests, 10 ADRs.
 
 ---
@@ -121,7 +121,7 @@ was selected; and the schema has to enter the prompt as a fixed context cost.
 
 The decisive advantage is that **the five data traps above are handled in code, where a
 test asserts them** — not in a prompt, where a model may ignore the instruction. It
-also means the whole tool layer is testable with zero model calls, which is why 201
+also means the whole tool layer is testable with zero model calls, which is why 206
 tests run without a key and why a dead OpenAI key never blocked the build.
 
 ### 3.2 Read-only by construction (ADR-002)
@@ -303,7 +303,7 @@ the reviewer.
 
 ## 6. Defects found by running the thing
 
-Five, in order. I list them because which defects you find is a fact about how you
+Six, in order. I list them because which defects you find is a fact about how you
 work.
 
 1. **The grounding verifier could be forged by its own input** (§5). Found by a
