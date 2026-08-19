@@ -1,0 +1,21 @@
+# Ray — serving dependencies. Python 3.11 or later.
+# One command runs Ray after installing this file. See README.md.
+# The compile step needs requirements-dev.txt as well. See ADR-009.
+
+# Agent harness. Required by the brief. Ships langchain-anthropic as a
+# dependency, so Ray needs no separate model package. See ADR-005.
+deepagents==0.7.7
+
+# Local web portal. See ADR-007.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+
+# Tests. No test calls a model.
+pytest==9.1.1
+
+# Note: langchain, langchain-core, langchain-anthropic, langgraph, anthropic, and
+# pydantic arrive as transitive dependencies of deepagents. They are not pinned
+# separately, so that deepagents keeps control of its own compatible range.
+#
+# DSPy is deliberately absent. It runs at build time only, and the compiled prompt
+# ships as a static artifact in prompts/. See ADR-009.

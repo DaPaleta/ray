@@ -1,0 +1,30 @@
+# Secrets. Never commit a key.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editor and operating system
+.DS_Store
+.idea/
+.vscode/
+
+# Note: data/ocean_home_task.db IS committed on purpose.
+# See docs/decisions/ADR-006-commit-the-supplied-database.md.
+
+# Test and build artifacts
+pytest.ini.bak

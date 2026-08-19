@@ -1,0 +1,15 @@
+# Ray — build-time dependencies. Not needed to run Ray.
+#
+# DSPy compiles the verdict-adjudicator prompt against the database. The compile
+# runs once and writes prompts/adjudicator.compiled.json. The serving path loads
+# that artifact and never imports DSPy. See ADR-009.
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   python -m ray.dspy.compile_adjudicator
+
+-r requirements.txt
+
+dspy==3.3.0
+
+# Note: DSPy reaches Anthropic through litellm, which reads ANTHROPIC_API_KEY.
+# The compile script copies OCEAN_ANTHROPIC_KEY into that variable. See ADR-005.
