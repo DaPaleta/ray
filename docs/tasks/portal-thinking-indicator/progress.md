@@ -28,6 +28,10 @@ submit handler, so neither leaks past the turn on the error path.
 
 Four states, in the order the analyst sees them:
 
+If the baseline read itself fails, the first poll that sees an unfinished turn adopts
+`turn_count - 1`. Without that, a page whose baseline read hit a dead server would show
+an empty step line for the whole turn even after the server came back.
+
 | State | Text |
 |---|---|
 | The ask is sent, the turn has not registered yet | `starting the turn…` |
@@ -51,6 +55,7 @@ server, because a unit test cannot show that the poll and the turn interleave.
 | Live turn, polled once a second | Steps grew `[]` → `find_messages` → `+ get_detection`, then `done` flipped in the tail. |
 | Two questions in a row | Baseline read 1, the second turn reported 2. The first question's steps never appeared under the second. |
 | Server killed mid-turn | The indicator switched to the lost-contact text on the second failed poll, and kept the turn open. |
+| Baseline read failed | Forced to null in the harness: the first poll adopted the baseline and the step line started reporting at t+1s, instead of staying empty. |
 | Reduced motion | `prefers-reduced-motion` stops both animations. The clock and the step line still update. |
 | JS syntax | The inline script parses. |
 

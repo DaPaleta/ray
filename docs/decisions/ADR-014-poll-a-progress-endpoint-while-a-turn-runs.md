@@ -39,7 +39,10 @@ Four rules make the indication honest.
 1. **The page reads `turn_count` before it sends the ask.** Until the count grows
    past that baseline, the indicator says `starting the turn…` and reports no
    steps. Without the baseline, the first poll of the second question renders the
-   first question's tool calls as its progress.
+   first question's tool calls as its progress. When that read fails — the server
+   was unreachable at submit time — the first poll that sees an *unfinished* turn
+   adopts `turn_count - 1` instead, because `ask` writes an answer or an error
+   before it returns, so an unfinished turn can only be this one.
 2. **A step is a completed tool call.** `record()` runs when the tool returns, so
    the page says `last: get_detection`, never `running get_detection…`. The
    trace does not support the second claim, and an unsupported claim is the one

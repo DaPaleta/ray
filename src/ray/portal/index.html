@@ -761,6 +761,15 @@
     try {
       var data = await fetchProgress();
       pollFailures = 0;
+      if (baselineTurnCount === null && !thisTurnStarted && !data.done &&
+          (data.turn_count || 0) > 0) {
+        // The baseline read before the ask failed — the server was unreachable
+        // then. An unfinished turn on the wire can only be this one, because
+        // `ask` writes an answer or an error before it returns, so everything
+        // before it is the baseline. Recovering it here is what lets the step
+        // line start working mid-turn once the server answers again.
+        baselineTurnCount = (data.turn_count || 0) - 1;
+      }
       if (baselineTurnCount !== null && (data.turn_count || 0) > baselineTurnCount) {
         thisTurnStarted = true;
       }
