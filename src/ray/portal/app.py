@@ -325,7 +325,7 @@ def create_app(ray: Any) -> FastAPI:
             ).fetchone()
 
             decision = conn.execute(
-                "SELECT verdict, attack_type, confidence FROM decisions WHERE message_id = ?",
+                "SELECT verdict, attack_type, override_reason FROM decisions WHERE message_id = ?",
                 (mid,),
             ).fetchone()
 
@@ -361,7 +361,7 @@ def create_app(ray: Any) -> FastAPI:
                 } if user else None,
                 "verdict": decision[0] if decision else None,
                 "attack_type": decision[1] if decision else None,
-                "confidence": decision[2] if decision else None,
+                "override_reason": decision[2] if decision else None,
                 "remediation": remediation[0] if remediation else None,
                 "links": links,
             }
