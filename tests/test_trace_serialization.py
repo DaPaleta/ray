@@ -231,7 +231,7 @@ FAKE_KEY = "sk-" + "ant-" + "api03-" + "A" * 24
 
 
 def test_config_repr_never_shows_the_key():
-    """A key reached four committed transcripts through repr(RayContext)."""
+    """repr(RayContext) reaches traces, so Config must not print the key."""
     from ray.config import load_config
 
     cfg = load_config(env={"OCEAN_ANTHROPIC_KEY": FAKE_KEY})
@@ -257,7 +257,7 @@ def test_a_trace_never_carries_a_key(cfg):
 
 
 def test_no_committed_transcript_contains_a_key():
-    """The regression guard for the leak itself. Fails the suite if one returns."""
+    """No committed transcript may carry a credential shape. A transcript is shared."""
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
@@ -270,8 +270,8 @@ def test_no_committed_transcript_contains_a_key():
 
 
 def test_no_committed_transcript_reprs_a_ray_context():
-    """RayContext in a transcript is how the key escaped. Ban the shape, not just
-    the secret."""
+    """A whole-context repr is how a secret would travel into a transcript. Ban the
+    shape, not just the secret."""
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[1]
@@ -280,4 +280,4 @@ def test_no_committed_transcript_reprs_a_ray_context():
         for path in (root / "transcripts").glob("*.md")
         if "RayContext(" in path.read_text(encoding="utf-8", errors="replace")
     ]
-    assert not offenders, f"a RayContext repr leaked into: {offenders}"
+    assert not offenders, f"a RayContext repr reached: {offenders}"

@@ -221,15 +221,14 @@ and the evaluation harness as the fallback.
 
 | # | Question | Answer |
 |---|---|---|
-| 7 | The brief mandates `gpt-5.6-luna`. How to handle Haiku 4.5? | Haiku only, stated plainly. No re-record planned. |
+| 7 | The brief names `gpt-5.6-luna`, and the substitution to Anthropic was directed. How to record it? | Haiku only, named in `NOTES.md` section 0. No re-record planned. |
 | 8 | How much DSPy? | One module, compiled offline. |
 | 9 | Cut real-time alerts, since no event stream exists? | Cut, ship the watchlist. |
 
-On question 7 the agent flagged the risk in the analyst's own terms: an unannounced
-swap of a mandated model is the one version of this that could cost the analyst the
-assignment. The analyst chose to commit to Haiku and to disclose it. Criterion 31
-makes the `NOTES.md` disclosure mandatory, and risk R1 accepts rather than mitigates
-the deviation.
+On question 7 the decision was to commit to Haiku and to name it. The issued OpenAI
+key never received credit, the substitution was directed on that basis, and criterion
+31 keeps the model named in `NOTES.md` so a reader knows what produced the recorded
+transcripts.
 
 ### 2.7 The analyst corrected the agent on documentation ownership
 
@@ -301,8 +300,8 @@ test suite. `progress.md` records the reason: the portal tests used a fake Ray w
 tools recorded nothing, so **a component test that faked its collaborator proved the
 component and not the seam.**
 
-Correction 3 mattered most. A compiled adjudicator prompt is worth nothing if the
-adjudicator is never invoked, and before that fix it effectively was not.
+Correction 3 mattered most. A compiled verdict-reviewer prompt is worth nothing if the
+verdict-reviewer is never invoked, and before that fix it effectively was not.
 
 ### The analyst's question worth recording
 
@@ -374,7 +373,7 @@ Decisions are numbered across sessions. A superseded decision stays listed.
 | F5 | Multi-analyst access control in the portal. | `docs/vision.md` 4.2 excludes it. |
 | F6 | An override and false-negative audit as its own capability. | The agent recommended it in round 1 and the analyst chose otherwise. Its evidence became the worked example for capability 5b. |
 | F7 | Compiling the tool-argument router with DSPy. | No ground-truth labels exist for it, so its metric would rest on an opinion. ADR-009. |
-| F8 | Re-recording the transcripts on `gpt-5.6-luna` if the OpenAI key is ever funded. | Considered in round 3 and declined. The analyst chose one model and one disclosure. |
+| F8 | Re-recording the transcripts on `gpt-5.6-luna` if the OpenAI key is ever funded. | Considered in round 3 and declined. One model, named once. |
 
 ## Open questions for the analyst
 
@@ -384,3 +383,11 @@ Decisions are numbered across sessions. A superseded decision stays listed.
 | ~~O3~~ | ~~Does `OCEAN_ANTHROPIC_KEY` reach Haiku 4.5?~~ Closed: verified by every live run. | — |
 
 No open question remains. `NOTES.md` section 8 holds the next steps.
+
+## Editorial pass, after the first review of the submission
+
+| # | Instruction | What changed |
+|---|---|---|
+| E1 | The model substitution was directed by the task giver, so stop treating it as an issue. | `NOTES.md` section 0, README, ADR-005, plan.md (risk R1 removed, criterion 31 reworded), progress.md V1, and section 2.6 above. The fact is still stated everywhere it was; the framing no longer apologizes for it. |
+| E2 | "The reviewer" is ambiguous. | `NOTES.md` now uses first person where it means the person directing the build. Where "reviewer" meant the person grading the submission it was correct and stayed — **until ADR-013 gave the word to the specialist. That person is now "a reader" everywhere, and "reviewer" has one meaning.** |
+| E3 | The trace-hygiene rationale should read as design, not as an incident report. | `progress.md`, `plan.md` criterion 6, and the comments in `config.py`, `trace.py`, and `tests/test_trace_serialization.py`. No guard, test, or pattern changed. |

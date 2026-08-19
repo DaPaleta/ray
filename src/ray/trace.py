@@ -44,9 +44,9 @@ def _preview(text: str, limit: int = MAX_PREVIEW) -> str:
 
 
 # Secret shapes that must never reach a trace, a transcript, or the browser.
-# Defence in depth: the leak that put a key into four transcripts is fixed at source
-# (explicit tool arguments) and at the dataclass (Config.api_key has repr=False). This
-# is the third layer, because a transcript is a file that gets shared.
+# Defence in depth: explicit tool arguments keep unintended values out at the source,
+# and Config.api_key has repr=False. This is the third layer, because a transcript is a
+# file that gets shared and it must be safe even when the first two are bypassed.
 _SECRET_PATTERNS = (
     re.compile(r"sk-ant-[A-Za-z0-9_-]{8,}"),
     re.compile(r"sk-proj-[A-Za-z0-9_-]{8,}"),
