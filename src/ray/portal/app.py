@@ -273,6 +273,101 @@ def create_app(ray: Any) -> FastAPI:
 
         return {"answer": answer}
 
+    @app.get("/api/message/{message_id}")
+    def get_message_preview(message_id: str) -> dict[str, Any]:
+        """Return safe header + verdict data for one message. Never returns body_text (ADR-004)."""
+        conn = getattr(ray, "conn", None)
+        if conn is None:
+            return JSONResponse(status_code=503, content={"error": "No database connection."})
+
+        import sqlite3 as _sqlite3
+
+        try:
+            mid = (message_id or "").strip()
+            if not mid:
+                return JSONResponse(status_code=400, content={"error": "message_id is required"})
+
+            # Resolve prefix → full id
+            if len(mid) < 32:
+                rows = conn.execute(
+                    "SELECT message_id FROM messages WHERE message_id LIKE ? ORDER BY message_id",
+                    (f"{mid}%",),
+                ).fetchall()
+                if not rows:
+                    return JSONResponse(status_code=404, content={"error": f"No message matches prefix {mid!r}"})
+                if len(rows) > 1:
+                    return JSONResponse(status_code=400, content={"error": f"Prefix {mid!r} is ambiguous ({len(rows)} matches)"})
+                mid = rows[0][0]
+            else:
+                row = conn.execute(
+                    "SELECT message_id FROM messages WHERE message_id = ?", (mid,)
+                ).fetchone()
+                if row is None:
+                    return JSONResponse(status_code=404, content={"error": f"No message with id {mid!r}"})
+
+            msg = conn.execute(
+                "SELECT message_id, received_at, sender_email, sender_display, "
+                "recipient_user_id, subject, spf, dkim, dmarc, attachment_names, campaign_id "
+                "FROM messages WHERE message_id = ?",
+                (mid,),
+            ).fetchone()
+            if msg is None:
+                return JSONResponse(status_code=404, content={"error": "Message not found"})
+
+            keys = ["message_id", "received_at", "sender_email", "sender_display",
+                    "recipient_user_id", "subject", "spf", "dkim", "dmarc",
+                    "attachment_names", "campaign_id"]
+            msg_dict = dict(zip(keys, msg))
+
+            user = conn.execute(
+                "SELECT display_name, department, is_vip FROM users WHERE user_id = ?",
+                (msg_dict["recipient_user_id"],),
+            ).fetchone()
+
+            decision = conn.execute(
+                "SELECT verdict, attack_type, confidence FROM decisions WHERE message_id = ?",
+                (mid,),
+            ).fetchone()
+
+            remediation = conn.execute(
+                "SELECT action FROM remediations WHERE message_id = ?",
+                (mid,),
+            ).fetchone()
+
+            links_rows = conn.execute(
+                "SELECT url, domain, is_scanned, scan_verdict FROM links WHERE message_id = ?",
+                (mid,),
+            ).fetchall()
+            links = [
+                {"url": r[0], "domain": r[1], "is_scanned": r[2], "scan_verdict": r[3]}
+                for r in links_rows
+            ]
+
+            return {
+                "message_id": mid,
+                "subject": msg_dict["subject"],
+                "received_at": msg_dict["received_at"],
+                "sender_email": msg_dict["sender_email"],
+                "sender_display": msg_dict["sender_display"],
+                "spf": msg_dict["spf"],
+                "dkim": msg_dict["dkim"],
+                "dmarc": msg_dict["dmarc"],
+                "attachment_names": msg_dict["attachment_names"],
+                "campaign_id": msg_dict["campaign_id"],
+                "recipient": {
+                    "name": user[0] if user else None,
+                    "department": user[1] if user else None,
+                    "is_vip": bool(user[2]) if user else False,
+                } if user else None,
+                "verdict": decision[0] if decision else None,
+                "attack_type": decision[1] if decision else None,
+                "confidence": decision[2] if decision else None,
+                "remediation": remediation[0] if remediation else None,
+                "links": links,
+            }
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse(status_code=500, content={"error": str(exc)})
+
     @app.get("/api/transcript")
     def transcript() -> PlainTextResponse:
         turns = ray.session.turns

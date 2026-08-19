@@ -666,6 +666,124 @@
   .btn-confirm { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok-text); font-weight: 600; }
   .btn-reject { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
 
+  /* ---- chip interactivity ---- */
+
+  .chip[data-msg-id] {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+  .chip[data-msg-id]:hover { background: #99eeff; color: var(--text); }
+
+  /* ---- email viewer panel ---- */
+
+  .email-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+  }
+
+  .email-close-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: .2rem .55rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color .12s, border-color .12s;
+  }
+  .email-close-btn:hover { color: var(--text); border-color: var(--text); }
+
+  .email-meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .25rem .75rem;
+    font-size: 0.85rem;
+    margin-bottom: .75rem;
+    align-items: baseline;
+  }
+
+  .email-meta-label {
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .email-subject-line {
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-family: "Rethink Sans", sans-serif;
+    margin-bottom: .75rem;
+  }
+
+  .email-auth {
+    display: flex;
+    gap: .4rem;
+    flex-wrap: wrap;
+    margin-bottom: .75rem;
+  }
+
+  .auth-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: .15rem .6rem;
+    border: 1px solid;
+    font-family: "DM Sans", sans-serif;
+    letter-spacing: .02em;
+  }
+  .auth-pass { background: var(--ok-bg); color: var(--ok-text); border-color: var(--ok-border); }
+  .auth-fail { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+  .auth-none { background: var(--bg); color: var(--muted); border-color: var(--border); }
+
+  .email-verdict-bar {
+    border-radius: 8px;
+    padding: .5rem .75rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .verdict-malicious { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+  .verdict-suspicious { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+  .verdict-safe { background: var(--ok-bg); color: var(--ok-text); border: 1px solid var(--ok-border); }
+  .verdict-unknown { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+  .email-links-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    margin: .75rem 0 .3rem;
+  }
+
+  .email-link-row {
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+    font-size: 0.82rem;
+    padding: .2rem 0;
+    border-bottom: 1px solid var(--border);
+    word-break: break-all;
+  }
+  .email-link-row:last-child { border-bottom: none; }
+
+  .email-loading {
+    color: var(--muted);
+    font-size: 0.88rem;
+    padding: .5rem 0;
+  }
+
   /* ---- arch diagram (overview tab) ---- */
 
   .arch-svg { width: 100%; max-width: 700px; display: block; margin: 1rem auto; }
@@ -860,6 +978,14 @@
         </div>
       </section>
 
+      <section id="panel-email" class="panel hidden" style="grid-column:1/-1">
+        <div class="email-header-row">
+          <h2 style="margin:0">Email viewer</h2>
+          <button id="email-close" class="email-close-btn" aria-label="Close email viewer">✕</button>
+        </div>
+        <div id="email-content"></div>
+      </section>
+
       <section id="panel-graph" class="panel hidden">
         <h2>Entity graph</h2>
         <div id="graph-container" class="scroll-x"></div>
@@ -897,7 +1023,12 @@
   function formatAnswerHtml(rawText) {
     var safe = escapeHtml(rawText);
     safe = safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    safe = safe.replace(/\[([a-zA-Z]+):([^\[\]]+)\]/g, '<span class="chip">[$1:$2]</span>');
+    safe = safe.replace(/\[([a-zA-Z]+):([^\[\]]+)\]/g, function(_, type, val) {
+      if (type === "msg") {
+        return '<span class="chip" data-msg-id="' + escapeHtml(val) + '">[msg:' + escapeHtml(val.slice(0, 8)) + '…]</span>';
+      }
+      return '<span class="chip">[' + escapeHtml(type) + ':' + escapeHtml(val) + ']</span>';
+    });
     safe = safe.replace(/\n/g, "<br>");
     return safe;
   }
@@ -2147,7 +2278,12 @@
       if (call.citations && call.citations.length) {
         var cites = document.createElement("div");
         cites.className = "chips";
-        call.citations.forEach(function (c) { cites.appendChild(makeChip(c)); });
+        call.citations.forEach(function (c) {
+          var chip = makeChip(c);
+          var m = String(c).match(/^\[msg:([^\]]+)\]$/);
+          if (m) chip.dataset.msgId = m[1];
+          cites.appendChild(chip);
+        });
         card.appendChild(cites);
       }
 
@@ -2292,6 +2428,155 @@
 
     container.appendChild(svg);
   }
+
+  // --- email viewer -----------------------------------------------------------
+
+  var emailPanel = document.getElementById("panel-email");
+  var emailContent = document.getElementById("email-content");
+
+  document.getElementById("email-close").addEventListener("click", function() {
+    emailPanel.classList.add("hidden");
+    clear(emailContent);
+  });
+
+  function authClass(val) {
+    var v = (val || "").toLowerCase();
+    if (v === "pass") return "auth-pass";
+    if (v === "fail" || v === "none") return "auth-fail";
+    return "auth-none";
+  }
+
+  function verdictClass(val) {
+    var v = (val || "").toLowerCase();
+    if (v === "malicious") return "verdict-malicious";
+    if (v === "suspicious") return "verdict-suspicious";
+    if (v === "safe") return "verdict-safe";
+    return "verdict-unknown";
+  }
+
+  async function showEmail(msgId) {
+    emailPanel.classList.remove("hidden");
+    emailPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    clear(emailContent);
+    var loading = document.createElement("div");
+    loading.className = "email-loading";
+    loading.textContent = "Loading " + msgId.slice(0, 8) + "…";
+    emailContent.appendChild(loading);
+
+    try {
+      var res = await fetch("/api/message/" + encodeURIComponent(msgId));
+      var data = await res.json();
+      if (!res.ok) {
+        loading.textContent = "Error: " + (data.error || res.status);
+        return;
+      }
+      renderEmail(data);
+    } catch (err) {
+      loading.textContent = "Network error: " + err;
+    }
+  }
+
+  function renderEmail(d) {
+    clear(emailContent);
+
+    // Verdict bar
+    if (d.verdict) {
+      var vbar = document.createElement("div");
+      vbar.className = "email-verdict-bar " + verdictClass(d.verdict);
+      var vLabel = document.createElement("strong");
+      vLabel.textContent = (d.verdict || "").toUpperCase();
+      vbar.appendChild(vLabel);
+      if (d.attack_type) {
+        var vDetail = document.createElement("span");
+        vDetail.textContent = "· " + d.attack_type;
+        vbar.appendChild(vDetail);
+      }
+      if (d.remediation) {
+        var vRem = document.createElement("span");
+        vRem.style.marginLeft = "auto";
+        vRem.style.fontSize = ".78rem";
+        vRem.style.fontWeight = "400";
+        vRem.textContent = "Remediation: " + d.remediation;
+        vbar.appendChild(vRem);
+      }
+      emailContent.appendChild(vbar);
+    }
+
+    // Subject
+    var subj = document.createElement("div");
+    subj.className = "email-subject-line";
+    subj.textContent = d.subject || "(no subject)";
+    emailContent.appendChild(subj);
+
+    // Auth badges
+    var auth = document.createElement("div");
+    auth.className = "email-auth";
+    [["SPF", d.spf], ["DKIM", d.dkim], ["DMARC", d.dmarc]].forEach(function(pair) {
+      var badge = document.createElement("span");
+      badge.className = "auth-badge " + authClass(pair[1]);
+      badge.textContent = pair[0] + ": " + (pair[1] || "—");
+      auth.appendChild(badge);
+    });
+    emailContent.appendChild(auth);
+
+    // Meta grid
+    var meta = document.createElement("div");
+    meta.className = "email-meta";
+    var rows = [
+      ["From", (d.sender_display ? d.sender_display + " " : "") + "<" + d.sender_email + ">"],
+      ["To", d.recipient ? d.recipient.name + " (" + d.recipient.department + (d.recipient.is_vip ? ", VIP" : "") + ")" : "—"],
+      ["Received", d.received_at || "—"],
+      ["Message ID", d.message_id],
+    ];
+    if (d.campaign_id) rows.push(["Campaign", d.campaign_id]);
+    if (d.attachment_names) rows.push(["Attachments", d.attachment_names]);
+    rows.forEach(function(row) {
+      var label = document.createElement("span");
+      label.className = "email-meta-label";
+      label.textContent = row[0];
+      var val = document.createElement("span");
+      val.textContent = row[1];
+      meta.appendChild(label);
+      meta.appendChild(val);
+    });
+    emailContent.appendChild(meta);
+
+    // Links
+    if (d.links && d.links.length) {
+      var lt = document.createElement("div");
+      lt.className = "email-links-title";
+      lt.textContent = "Links (" + d.links.length + ")";
+      emailContent.appendChild(lt);
+      d.links.forEach(function(link) {
+        var row = document.createElement("div");
+        row.className = "email-link-row";
+        var domain = document.createElement("span");
+        domain.className = "chip";
+        domain.textContent = link.domain || "—";
+        row.appendChild(domain);
+        var verdict = document.createElement("span");
+        verdict.style.color = "var(--muted)";
+        verdict.textContent = link.is_scanned
+          ? (link.scan_verdict || "no verdict")
+          : "not scanned";
+        row.appendChild(verdict);
+        var url = document.createElement("span");
+        url.style.fontFamily = "monospace";
+        url.style.fontSize = ".78rem";
+        url.style.color = "var(--muted)";
+        url.textContent = link.url || "";
+        row.appendChild(url);
+        emailContent.appendChild(row);
+      });
+    }
+  }
+
+  // Click delegation — any .chip with data-msg-id anywhere in the analyst tab
+  document.getElementById("page-analyst").addEventListener("click", function(e) {
+    var chip = e.target.closest(".chip[data-msg-id]");
+    if (!chip) return;
+    showEmail(chip.dataset.msgId);
+  });
 
   // --- init -------------------------------------------------------------------
 
