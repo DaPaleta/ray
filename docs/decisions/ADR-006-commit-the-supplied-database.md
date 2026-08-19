@@ -23,24 +23,24 @@ The `README.md` states both the default and the override.
 ## Alternatives Considered
 
 **Read the path from `RAY_DB_PATH` only, and commit no data.** Rejected. The
-reviewer must then set an environment variable before the first run, which breaks
+reader must then set an environment variable before the first run, which breaks
 the one-command requirement.
 
 **Download the file at first run.** Rejected. No canonical URL exists for the
 attachment, and a network call at startup adds a failure mode for no benefit.
 
 **Commit the file through Git LFS.** Rejected. 1.9 MB is far below the size at
-which LFS pays for its setup cost, and LFS adds a dependency for the reviewer.
+which LFS pays for its setup cost, and LFS adds a dependency for the reader.
 
 ## Consequences
 
 **Positive.** A clean checkout runs with one command, which satisfies brief
-requirement 1. The reviewer needs no setup step and no path knowledge. The
+requirement 1. The reader needs no setup step and no path knowledge. The
 override still supports a different database, such as a reduced fixture for a
 test.
 
 **Negative.** The repository carries 1.9 MB of supplied data, and the history
-grows if the file ever changes. A reviewer may question a binary file in version
+grows if the file ever changes. A reader may question a binary file in version
 control, so `docs/structure.md` section 5 names the file as a deliberate
 inclusion and points here.
 

@@ -23,6 +23,30 @@ from ray.schemas import CITATION_KINDS
 # for analyzer citations, an analyzer name.
 _CITATION_RE = re.compile(r"\[([a-zA-Z][a-zA-Z0-9_-]*):([^\[\]/]+)(?:/([^\[\]]+))?\]")
 
+# The eleven tool names, mirrored here rather than imported: `subagents.build_tools`
+# defines them as closures, and this module sits a layer below it. A test asserts
+# that this tuple matches the built registry, so a new tool cannot slip past.
+TOOL_NAMES: tuple[str, ...] = (
+    "find_messages",
+    "get_message",
+    "get_message_body",
+    "get_detection",
+    "domain_intel",
+    "entity_graph",
+    "find_users",
+    "blast_radius",
+    "recall",
+    "remember",
+    "watchlist_sweep",
+)
+
+# A tool name in brackets is a claim dressed as a citation. `_CITATION_RE` needs a
+# colon, so `[blast_radius]` matched nothing and passed unseen. A live
+# incident-response run produced exactly that, which is why this exists.
+_PSEUDO_CITATION_RE = re.compile(
+    r"\[(" + "|".join(TOOL_NAMES) + r")\]", re.IGNORECASE
+)
+
 # A crude heuristic for "this sentence makes a claim". Not exhaustive by design;
 # it only needs to catch the common case of an answer with prose and zero
 # citations, so the portal can flag it.
@@ -213,6 +237,20 @@ def verify(conn: sqlite3.Connection, text: str) -> GroundingReport:
             )
 
     return GroundingReport(checks=checks)
+
+
+def find_pseudo_citations(text: str) -> list[str]:
+    """Tool names in brackets, in order of appearance and without repeats.
+
+    A tool name is not a row. `[blast_radius]` looks like a citation to a reader and
+    to nothing else, so it is reported rather than ignored (IR1).
+    """
+    seen: list[str] = []
+    for match in _PSEUDO_CITATION_RE.finditer(text or ""):
+        raw = match.group(0)
+        if raw not in seen:
+            seen.append(raw)
+    return seen
 
 
 def warn_if_uncited(text: str) -> str | None:

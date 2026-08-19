@@ -1,7 +1,12 @@
-# ADR-009: DSPy compiles the adjudicator prompt offline, into a static artifact
+# ADR-009: DSPy compiles the verdict-reviewer prompt offline, into a static artifact
 
 **Date:** 2026-08-19
-**Status:** accepted
+**Status:** accepted, extended by ADR-012, and renamed by ADR-013
+
+ADR-012 keeps every mechanism in this record and applies it to a second prompt. It also
+states the test that decides which prompts qualify, which is the test this record used
+when it rejected the router: a prompt is compiled only against a recorded label. The
+artifact path in this record is now resolved per specialist under `RAY_PROMPTS_DIR`.
 
 ## Context
 
@@ -18,12 +23,12 @@ Two constraints shape how much DSPy this project can carry.
 
 The database supplies real labels, and it supplies them on both sides:
 
-- **The agreement set.** 2288 recorded decisions. A correct adjudicator agrees
+- **The agreement set.** 2288 recorded decisions. A correct verdict-reviewer agrees
   with the vast majority of them.
 - **The adversarial set.** Eight rows where the recorded verdict is wrong: the 5
   released `quaystone-billing-portal.com` messages, the 2 payslip false negatives
   `d0e20c68` and `41fe8ce8`, and the CFO impersonation `276266c0`. A correct
-  adjudicator **disagrees** with each one.
+  verdict-reviewer **disagrees** with each one.
 
 A metric that rewards agreement alone would score a constant "safe" answer at over
 98 percent. The two-sided metric is what makes the target real.
@@ -32,14 +37,14 @@ A metric that rewards agreement alone would score a constant "safe" answer at ov
 
 **Compile offline. Serve a static artifact.**
 
-1. `src/ray/dspy/compile_adjudicator.py` runs at build time. It reads the
+1. `src/ray/dspy/compile_reviewer.py` runs at build time. It reads the
    database, builds the two label sets, defines the metric, and optimizes the
-   verdict-adjudicator prompt.
-2. The compile writes `prompts/adjudicator.compiled.json`. That file is committed.
+   verdict-reviewer prompt.
+2. The compile writes `prompts/reviewer.compiled.json`. That file is committed.
 3. `agent.py` loads the artifact and places the prompt into the
-   verdict-adjudicator subagent from ADR-008. Nothing imports DSPy at request
+   verdict-reviewer subagent from ADR-008. Nothing imports DSPy at request
    time.
-4. `requirements.txt` excludes DSPy. `requirements-dev.txt` holds it. A reviewer
+4. `requirements.txt` excludes DSPy. `requirements-dev.txt` holds it. A reader
    who only runs Ray never installs it.
 5. When the artifact is absent, Ray falls back to the hand-written prompt and says
    so at startup. The fallback is a supported state, not a crash.
@@ -91,6 +96,6 @@ hand-written one, so the repository keeps both and `NOTES.md` explains the
 relationship. DSPy is the highest-risk item in the plan, and the timebox exists
 because of that.
 
-**Follow-up.** Commit `prompts/adjudicator.compiled.json` together with the score
+**Follow-up.** Commit `prompts/reviewer.compiled.json` together with the score
 that produced it, so a reader can tell which artifact the reported number belongs
 to. Record the metric definition in `NOTES.md`, not only in code.

@@ -1,4 +1,4 @@
-"""Tests for the DSPy adjudicator metric and label sets.
+"""Tests for the DSPy reviewer metric and label sets.
 
 Must pass without DSPy installed and without a key (ADR-009, IR8). This module
 imports only `ray.dspy.metric`, which imports no `dspy` at module level.
@@ -75,7 +75,7 @@ def test_build_evidence_for_cfo_message_contains_required_facts(conn):
 
 
 def test_build_evidence_for_cfo_message_does_not_leak_the_answer(conn):
-    """The adjudicator must not see the answer it is being scored against.
+    """The verdict-reviewer must not see the answer it is being scored against.
 
     The recorded decision for this message is verdict='safe', attack_type=NULL,
     overridden_by=NULL, remediation.action='none'. We assert the evidence never

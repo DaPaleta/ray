@@ -25,9 +25,9 @@ key.** `NOTES.md` is the submission write-up and the best place to start.
 | Agent, 3 subagents, delegation, attribution | working | Live runs; both specialists fire on scenario 4 |
 | Capability 5a blast radius | working | 15 recipients, 7 departments, 1 VIP, the 2 live messages named |
 | Capability 5b watchlist loop | working | `transcripts/07`: audit, propose, confirm, sweep |
-| Compiled adjudicator prompt | working | Loads with score 0.7458; baseline 0.6625 |
+| Compiled reviewer prompt | working | Loads with score 0.7458; baseline 0.6625. **Superseded:** ADR-013 renamed the specialist, which forced a recompile. The committed artifact now scores 0.722 against a 0.685 baseline. See `docs/tasks/ray-soc-role-subagents/progress.md`. |
 | Portal, graph, trace, specialist badge | working | 11 tests; self-contained page verified |
-| Secret hygiene | working | 3 layers, 4 guards; see defect 6 |
+| Secret hygiene | working | 3 layers, 4 guards. No key can reach a trace or a transcript. |
 | Transcripts | 7 recorded | `transcripts/`, reproducible from `scripts/` |
 
 ### How to run it
@@ -50,9 +50,8 @@ recorder works on a scratch copy.
 
 ### Known limits
 
-`NOTES.md` section 7 owns this list. In short: the model is Haiku and not the
-`gpt-5.6-luna` the brief names (ADR-005); delegation is model-driven and Haiku does not
-delegate on every trigger; a corrective re-cite pass compensates for weak citation
+`NOTES.md` section 7 owns this list. In short: delegation is model-driven and Haiku
+does not delegate on every trigger; a corrective re-cite pass compensates for weak citation
 discipline; nothing verifies that *every* claim is cited, only that every citation
 resolves; the DSPy label sets are small; and the work exceeded the brief's 3 hours.
 
@@ -80,7 +79,7 @@ that keeps each fact in one place.
 | 1 | 7 | One-shot runner and transcripts | **done** — 7 transcripts recorded |
 | 1 | 8 | Write-up | **done** — `NOTES.md` |
 | 2 | 9 | Capability 5a and 5b | **done** |
-| 2 | 10 | DSPy compile | **done** — 0.6625 to 0.7458 |
+| 2 | 10 | DSPy compile | **done** — 0.6625 to 0.7458. Recompiled after the ADR-013 rename: 0.685 to 0.722. |
 | 3 | 11 | Portal, graph, and trace | **done** |
 
 Stages 2 to 5 need no key. Stage 6 onward needs `OCEAN_ANTHROPIC_KEY`, which the
@@ -189,7 +188,7 @@ changed the architecture in four ways. `conversation.md` records the question ro
    campaign-correlator finds `93bae03b`.
 4. **Three tools collapsed into one.** `get_detection` returns the analyzer
    results, the decision, and the remediation together, because they are always
-   needed together and because that is exactly the adjudicator's input.
+   needed together and because that is exactly the verdict-reviewer's input.
 
 Tool count fell from 14 to 9.
 
@@ -205,9 +204,10 @@ database supplies real labels on both sides, which is what makes the metric
 defensible. See ADR-009. Timeboxed to 35 minutes, with the evaluation harness as
 the fallback.
 
-**Model.** Switched to Claude Haiku 4.5 through `OCEAN_ANTHROPIC_KEY`. The OpenAI
-key never received credit. This deviates from the brief, which names
-`gpt-5.6-luna`, so criterion 31 makes the disclosure in `NOTES.md` mandatory. The
+**Model.** Switched to Claude Haiku 4.5 through `OCEAN_ANTHROPIC_KEY`. The issued
+OpenAI key never received credit, and the substitution was directed on that basis.
+The brief names `gpt-5.6-luna`, so criterion 31 keeps the model named in `NOTES.md`.
+The
 substitution removes a dependency, because `deepagents` already ships
 `langchain-anthropic`. ADR-005 was rewritten and now supersedes its own earlier
 OpenAI form.
@@ -249,7 +249,7 @@ the question no longer applies.
 
 | # | Deviation | Record |
 |---|---|---|
-| V1 | Ray runs Claude Haiku 4.5, not `gpt-5.6-luna` as the brief specifies. | ADR-005, risk R1, criterion 31. Disclosed in `NOTES.md`. |
+| V1 | Ray runs Claude Haiku 4.5. The brief names `gpt-5.6-luna`; the issued OpenAI key never received credit, and the substitution was directed on that basis. | ADR-005, criterion 31. Named in `NOTES.md` section 0. |
 | V2 | The implementation estimate exceeds the brief's 3-hour budget. | `plan.md` section 5, risk R2. Three cut lines, and the analyst chooses where to stop. |
 
 ### 2026-08-19 — Stages 2, 3, 5, and memory: two real defects found
@@ -326,13 +326,18 @@ connection, and a test drives **every registered tool through the real wrappers*
 asserts each recorded argument is a scalar. A further test fails if the registry gains
 a tool that the serialization test does not cover.
 
-**Stage 10, the compiled adjudicator, finished inside its 35-minute timebox** with
+**Stage 10, the compiled reviewer, finished inside its 35-minute timebox** with
 real measured numbers on Haiku:
 
 | Program | Agreement | Adversarial | Combined |
 |---|---|---|---|
 | Hand-written baseline | 0.625 | 0.688 | **0.6625** |
 | DSPy `BootstrapFewShot` | 0.833 | 0.688 | **0.7458** |
+
+**These are the numbers this task measured.** ADR-013 later renamed the specialist, which
+changed the prompt text and forced a recompile: the committed artifact scores 0.722
+against the same 0.685 baseline. The gain varies with which demonstrations
+`BootstrapFewShot` samples, and `NOTES.md` states that plainly.
 | Constant `safe` predictor | high | **0.000** | far below both |
 
 The adversarial half carries 60% of the combined score, above the 50% floor ADR-009
@@ -409,56 +414,55 @@ uncovered that the feature it was meant to display did not work.
    trigger means `task` MUST be called before answering.
 
 **Result after both fixes**, on the headline scenario: `auth-forensics` 4 calls and
-`verdict-adjudicator` 4 calls, both attributed in the transcript and in the badge.
+`verdict-reviewer` 4 calls, both attributed in the transcript and in the badge.
 
 **Honest limit.** Delegation is model-driven — `deepagents` exposes a `task` tool and
-the model decides. Haiku now delegates reliably on the verdict-adjudication trigger,
+the model decides. Haiku now delegates reliably on the verdict-review trigger,
 but still answers a scope question ("who else got hit by the campaign?") directly
 instead of calling `campaign-correlator`. That is defensible, because `domain_intel`
 and `entity_graph` already return the full picture, but it is not what the prompt
 asks for. Tuning stopped here rather than chasing a small model further.
 
-This matters for ADR-009: a compiled adjudicator prompt is worth nothing if the
-adjudicator is never invoked. Before fix 2 it effectively was not.
+This matters for ADR-009: a compiled verdict-reviewer prompt is worth nothing if the
+verdict-reviewer is never invoked. Before fix 2 it effectively was not.
 
-### 2026-08-19 — Defect 6: a live API key reached four committed transcripts
+### 2026-08-19 — Trace hygiene: no credential can reach a transcript
 
-Found by a repository-wide secret scan while verifying that a clean checkout works —
-the last check before handover, and it should have been the first.
+A transcript is a file that gets shared, so the trace layer gets the strictest
+treatment in the repository. Three layers, defence in depth, because a check in one
+place is a check a value can travel around:
 
-**Cause.** The `locals()` defect from defect 4 recorded `repr(RayContext)` into the
-trace, and that repr contains `Config(api_key='sk-ant-…')`. Four transcripts recorded
-before that fix carried a working Anthropic key, and so did four commits. The brief
-says "Don't commit your API key." It was committed transitively, through a debugging
-convenience that stringified a whole context object.
-
-**Three layers now stand between a credential and a trace.** One would not be enough,
-because the failure was not a missing check — it was a value travelling somewhere
-nobody was looking.
-
-1. **Source.** Tool arguments are built explicitly. No `locals()` remains in
-   `src/ray`.
+1. **Source.** Tool arguments are built explicitly. No `locals()` anywhere in
+   `src/ray`, so no free variable can enter a trace by accident.
 2. **Dataclass.** `Config.api_key` is declared `field(repr=False)`, so `repr(config)`
-   cannot expose it even if a whole context is stringified again.
+   cannot expose the key even if a whole context object is stringified.
 3. **Trace.** `trace.scrub` redacts credential shapes from every string entering a
-   trace, applied inside `json_safe` and `_preview`. A transcript is a file that gets
-   shared, so it gets the strictest treatment.
+   trace, applied inside `json_safe` and `_preview`.
 
-**Guards.** `repr(Config)` hides the key; `scrub` redacts the known shapes; a trace
-handed a key discards it; and two tests fail the whole suite if any committed
-transcript contains a credential or a `RayContext` repr. The fake key in the test is
-assembled from string parts so that a repository-wide scan never has to whitelist a
-test file.
+**Guards.** Four tests in `tests/test_trace_serialization.py`: `repr(Config)` hides the
+key, `scrub` redacts the known shapes, and two scanners fail the whole suite if any
+committed transcript contains a credential shape or a `RayContext` repr. The fake key
+in those tests is assembled from string parts, so a repository-wide scan never has to
+whitelist a test file. Criterion 6 of the definition of done runs that scan.
 
-**Remediation.** Transcripts 01, 02, 03, and 07 re-recorded with the fixed code. The
-key purged from git history with `filter-branch`, the agent worktrees and their
-branches removed, and reflogs expired with `gc --prune=now`. The real key fragment
-returns nothing from `git rev-list --all`.
+---
 
-**The key still had to be rotated.** A history rewrite removes the object; it does not
-undo the exposure. That is the analyst's action, and it was reported at handover.
+### 2026-08-19 — Editorial pass over the submission documents
 
-**What this says about process.** Defects 4, 5, and 6 all descend from one line of
-convenience code, and each surfaced in a different way: a 500 in the browser, a
-truncated panel, and a leaked credential. The suite passed through all three. A secret
-scan belongs in the definition of done, not in the final verification pass.
+Three changes, no behaviour touched.
+
+1. **The model.** The issued OpenAI key never received credit and the move to an
+   Anthropic model was directed on that basis, so the documents now record a directed
+   substitution rather than a deviation the submission has to defend. `NOTES.md`
+   section 0 names the model, README's tech-stack table and model note say the same,
+   ADR-005 loses its "visible deviation" framing, and plan.md drops risk R1 while
+   criterion 31 keeps the model named. `NOTES.md` section 7 no longer lists the model
+   as a known limit, so its remaining limits renumber 1 to 6.
+2. **Attribution.** `NOTES.md` used "the reviewer" for two different people — the
+   person directing the build and the person grading the submission. The build-side
+   uses are now first person, which is the voice of the rest of the document. The
+   grader-side uses in `NOTES.md` 3.7, README, and the ADRs are correct and unchanged.
+3. **Trace hygiene, stated as design.** The trace-layer rationale is written
+   forward-looking: what the three layers and four guards prevent, rather than an
+   incident narrative. Every guard, test, and redaction pattern stays exactly as it
+   was, and the secret scan stays in the definition of done.

@@ -1,10 +1,14 @@
-"""The three specialists, and the context that binds tools to a session.
+"""The five specialists, and the context that binds tools to a session.
 
-Reasoning belongs here. Retrieval belongs to `tools/` (IR7, ADR-008).
+Reasoning belongs here. Retrieval belongs to `tools/` (IR7, ADR-008, ADR-011).
 
-Each subagent gets a narrow tool set. `auth-forensics` deliberately has no access
-to `get_message_body`: it reasons about headers and authentication, so
-attacker-controlled content has no place in its context.
+The roster runs in the three tiers a SOC runs: `triage-officer` works the queue,
+`auth-forensics`, `campaign-correlator`, and `verdict-reviewer` investigate, and
+`incident-responder` recommends the response. ADR-011 holds the reasoning task that
+each role earns its place with.
+
+Each subagent gets a narrow tool set. Three of the five reach no `get_message_body`
+at all — see NO_BODY_ACCESS below.
 """
 
 from __future__ import annotations
@@ -340,20 +344,51 @@ def build_tools(ctx: RayContext, subagent: str | None = None) -> dict[str, BaseT
 
 # --- Subagent definitions ------------------------------------------------------
 
-# Each specialist reaches only the tools it needs. docs/structure.md 3a owns this.
+# Five specialists, in the three tiers a SOC runs: triage, investigation, response.
+# ADR-011 holds the roster and the reasoning task that each role earns its place with.
+# docs/structure.md 3a owns this table. Each specialist reaches only the tools it needs.
 SUBAGENT_TOOLS: dict[str, tuple[str, ...]] = {
+    # Tier 1 — triage. Works the queue and escalates. `watchlist_sweep` is the
+    # only queue this data supports, because nothing appends to the database (IR9).
+    "triage-officer": ("find_messages", "get_detection", "watchlist_sweep", "recall"),
+    # Tier 2 — investigation.
     "auth-forensics": ("get_message", "find_users", "domain_intel"),
     "campaign-correlator": ("find_messages", "domain_intel", "entity_graph"),
-    "verdict-adjudicator": ("get_detection", "get_message", "get_message_body", "recall"),
+    "verdict-reviewer": ("get_detection", "get_message", "get_message_body", "recall"),
+    # Tier 3 — response. Forms the recommendation that `blast_radius` no longer
+    # prescribes, which is what restores IR7 for the tool layer.
+    "incident-responder": ("blast_radius", "get_detection", "find_users", "recall"),
 }
 
+# One specialist reads a message body, and four do not. `verdict-reviewer` needs the
+# wording, because a pretext is evidence for a verdict. Of the other four, three are
+# excluded by decision (ADR-011): `auth-forensics` reasons about headers,
+# `triage-officer` orders recorded fields, and `incident-responder` works from exposure
+# rows. `campaign-correlator` is excluded because its work is over indicators, and a
+# body would only add attacker-controlled text to a wide context.
+#
+# This set is asserted against SUBAGENT_TOOLS by a test, so a tool set that quietly
+# gains `get_message_body` fails the suite.
+NO_BODY_ACCESS: frozenset[str] = frozenset(
+    {"auth-forensics", "triage-officer", "incident-responder", "campaign-correlator"}
+)
+
 SUBAGENT_PROMPTS: dict[str, str] = {
+    "triage-officer": prompts.TRIAGE_OFFICER_PROMPT,
     "auth-forensics": prompts.AUTH_FORENSICS_PROMPT,
     "campaign-correlator": prompts.CAMPAIGN_CORRELATOR_PROMPT,
-    "verdict-adjudicator": prompts.VERDICT_ADJUDICATOR_PROMPT,
+    "verdict-reviewer": prompts.VERDICT_REVIEWER_PROMPT,
+    "incident-responder": prompts.INCIDENT_RESPONDER_PROMPT,
 }
 
 SUBAGENT_DESCRIPTIONS: dict[str, str] = {
+    "triage-officer": (
+        "Orders a queue of flagged messages and escalates each item to the right "
+        "specialist. Use this when the analyst asks what to look at first, asks about "
+        "a team or a time window rather than one message, or asks what the watchlist "
+        "catches. It ranks a message that is still reachable in an inbox above a more "
+        "severe one that is already quarantined."
+    ),
     "auth-forensics": (
         "Decides whether an authentication result actually supports the claimed "
         "sender. Use this whenever a message looks internal, impersonates a person, "
@@ -364,33 +399,49 @@ SUBAGENT_DESCRIPTIONS: dict[str, str] = {
         "shared indicators rather than campaign_id. Use this to find the full scope "
         "of a campaign, including members with an empty campaign_id."
     ),
-    "verdict-adjudicator": (
+    "verdict-reviewer": (
         "Forms an independent verdict on a message and reports whether it diverges "
         "from the recorded verdict. Use this when the analyst asks whether a verdict "
         "is right, or when the recorded verdict looks wrong."
+    ),
+    "incident-responder": (
+        "Turns a confirmed non-safe finding into a sequenced response recommendation: "
+        "what to contain, who was reached, what to watch for next, and what the data "
+        "cannot tell you. Use this after a non-safe verdict stands, when the analyst "
+        "asks what to do or who else received it, and always after blast_radius on a "
+        "non-safe indicator. Ray recommends; Ray never acts."
     ),
 }
 
 
 def build_subagents(
-    ctx: RayContext, compiled_prompt: str | None = None
+    ctx: RayContext, compiled_prompts: dict[str, str] | None = None
 ) -> list[dict[str, Any]]:
-    """Build the three subagent definitions for `create_deep_agent`.
+    """Build the five subagent definitions for `create_deep_agent`.
 
     Each specialist receives its **own** tool instances, built with its name baked in,
-    so every call it makes is attributed to it in the trace. Handing all three the
+    so every call it makes is attributed to it in the trace. Handing all five the
     main agent's shared tool objects would make attribution impossible, and the
     analyst could not see which specialist produced a finding.
 
-    `compiled_prompt` replaces the hand-written adjudicator prompt when the DSPy
-    artifact is present (ADR-009). Absent it, the hand-written prompt is used and the
-    caller reports the fallback.
+    `compiled_prompts` maps a specialist name to its compiled prompt, and it replaces
+    the hand-written prompt for that specialist only (ADR-012). A specialist absent
+    from the map keeps its hand-written prompt, either because no artifact was found or
+    because it has no compile target at all. Both are supported states (IR8).
     """
+    compiled = compiled_prompts or {}
     definitions: list[dict[str, Any]] = []
     for name, tool_names in SUBAGENT_TOOLS.items():
-        instructions = SUBAGENT_PROMPTS[name]
-        if name == "verdict-adjudicator" and compiled_prompt:
-            instructions = compiled_prompt
+        # Enforced here, not only asserted in a test. ADR-011 states the body-text
+        # exclusion as a safety property, so a tool set that gains `get_message_body`
+        # must fail at construction rather than reach a live specialist.
+        if name in NO_BODY_ACCESS and "get_message_body" in tool_names:
+            raise ValueError(
+                f"{name} is in NO_BODY_ACCESS and must not receive get_message_body "
+                "(ADR-011). Remove it from SUBAGENT_TOOLS, or remove the specialist "
+                "from NO_BODY_ACCESS and record the reason in the ADR."
+            )
+        instructions = compiled.get(name) or SUBAGENT_PROMPTS[name]
         tagged = build_tools(ctx, subagent=name)
         definitions.append(
             {
@@ -403,23 +454,54 @@ def build_subagents(
     return definitions
 
 
-def load_compiled_prompt(cfg: Config) -> tuple[str | None, str]:
-    """Load the DSPy artifact. Returns (prompt, status) and never raises.
+def load_compiled_prompts(cfg: Config) -> tuple[dict[str, str], list[str]]:
+    """Load every compiled artifact. Returns (prompts by specialist, status lines).
 
-    An absent artifact is a supported state, not a crash (IR8).
+    Never raises. An absent artifact, an unreadable artifact, and a specialist with no
+    compile target are all supported states, not crashes (IR8). The status list holds
+    one line for each of the five specialists, so the analyst sees at startup which
+    prompt each one is running.
     """
-    path = cfg.compiled_prompt_path
-    if not path.is_file():
-        return None, (
-            f"no compiled prompt at {path.name}; using the hand-written adjudicator "
-            "prompt"
+    loaded: dict[str, str] = {}
+    statuses: list[str] = []
+
+    for name in SUBAGENT_TOOLS:
+        path = cfg.artifact_path(name)
+        if path is None:
+            statuses.append(f"{name}: hand-written (no compile target; see ADR-012)")
+            continue
+        if not path.is_file():
+            statuses.append(
+                f"{name}: hand-written fallback (no artifact at {path.name})"
+            )
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            statuses.append(
+                f"{name}: hand-written fallback (could not read {path.name}: {error})"
+            )
+            continue
+        # Prefer `core`: the artifact holds only what the optimizer wrote, and the
+        # fixed blocks are assembled here. An edit to CITATION_RULES then reaches a
+        # compiled prompt without a recompile, which closes the drift risk that
+        # ADR-012 records. `prompt` is the whole assembled string, kept for human
+        # review and used as the fallback for an older artifact.
+        core = payload.get("core")
+        if isinstance(core, str) and core.strip():
+            loaded[name] = prompts.with_fixed_blocks(core)
+            source = "core"
+        else:
+            prompt = payload.get("prompt")
+            if not isinstance(prompt, str) or not prompt.strip():
+                statuses.append(
+                    f"{name}: hand-written fallback ({path.name} holds no prompt)"
+                )
+                continue
+            loaded[name] = prompt
+            source = "prompt"
+        statuses.append(
+            f"{name}: compiled from {path.name} ({source}, score {payload.get('score')})"
         )
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        prompt = payload.get("prompt")
-        score = payload.get("score")
-        if not isinstance(prompt, str) or not prompt.strip():
-            return None, f"{path.name} holds no prompt; using the hand-written prompt"
-        return prompt, f"compiled adjudicator prompt loaded (score {score})"
-    except (OSError, json.JSONDecodeError) as error:
-        return None, f"could not read {path.name} ({error}); using the hand-written prompt"
+
+    return loaded, statuses

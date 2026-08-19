@@ -8,29 +8,25 @@
 
 # I got an EDR alert that someone clicked a link on acme-portal.co. What do we know about it?
 
-*Model: `claude-haiku-4-5-20251001` · 2026-08-19T10:30:53Z*
+*Model: `claude-haiku-4-5-20251001` · 2026-08-19T12:43:43Z*
 
 ## Answer
 
-Here's what we know about acme-portal.co:
+Here is what we know about `acme-portal.co`:
 
-**The domain is a lookalike and malicious.** It resembles acme.com but is a separate domain controlled by attackers. It has appeared in 15 messages across 15 links, with 13 of those links scanned as malicious. Two links remain unscanned [link:d0e20c68] [link:41fe8ce8].
+**The domain is a lookalike impersonating acme.com.** It has appeared in 15 messages across 7 departments (engineering, exec, finance, IT, legal, operations, sales) since 2026-07-25. One VIP was hit: Talia Moreau in exec.
 
-**Campaign scope:** 14 of the 15 messages belong to campaign `cmp_acme_portal_2026_07`. The campaign ran from July 25 to August 10, 2026.
+**Link scan verdicts:**
+- 13 links scanned as **malicious**
+- 2 links **unscanned** with no verdict recorded [link:d0e20c68] [link:41fe8ce8]
 
-**Who was targeted:** 15 distinct users across 7 departments (engineering, exec, finance, IT, legal, operations, sales), including VIP Talia Moreau in exec.
+**Campaign scope:** 14 of the 15 messages carry campaign ID `cmp_acme_portal_2026_07`. The recorded verdicts are malicious/credential_phishing on 13 messages and safe on 2.
 
-**Current state:** 13 messages have been quarantined; 2 remain in inboxes unquarantined. The recorded verdicts are malicious/credential_phishing for 13 messages and safe for 2.
+**Remediation state:** 13 messages are quarantined; 2 remain in inboxes.
 
-**Important limitation:** Ray cannot see click data or EDR alerts. The EDR alert you received is external evidence that someone clicked a link to this domain. I can tell you the messages that contained links to acme-portal.co, who received them, and that the links were malicious — but I cannot confirm which user clicked or when from the email system alone.
+**Important limitation:** Ray has no click data or EDR data. The database does not record whether anyone actually opened a message or clicked a link. Your EDR alert tells you someone clicked; the email data tells you who received messages with links to this domain and whether those messages are still in their inboxes. The 2 unquarantined messages are still reachable and are candidates for investigation.
 
-**Next steps:** 
-1. Cross-reference the EDR alert with the 15 recipients to identify which user clicked.
-2. Check whether that user's message is still in their inbox (2 are unquarantined) or already quarantined.
-3. If the user's message is unquarantined, recommend quarantine.
-4. Investigate the user's endpoint for lateral movement or credential compromise, since this was a credential phishing campaign.
-
-Would you like me to pull the full list of recipients or details on the two unquarantined messages?
+Do you want me to pull details on the two unquarantined messages, or look deeper into the campaign?
 
 ## How Ray reached it
 

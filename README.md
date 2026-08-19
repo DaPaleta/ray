@@ -11,8 +11,9 @@ The organization is Acme Robotics. The primary domain is `acme.com`.
 
 ## Status
 
-Complete and working. **206 tests pass with no API key**, 11 tools, 3 specialist
-subagents, 7 recorded transcripts, and a compiled adjudicator prompt.
+Complete and working. **252 tests pass with no API key**, 11 tools, 5 specialist
+subagents in the three tiers a SOC runs, 8 recorded transcripts, and two compiled
+specialist prompts.
 
 `NOTES.md` is the submission write-up and the best place to start.
 `docs/tasks/ray-email-threat-investigator/progress.md` opens with a "Current state"
@@ -45,16 +46,20 @@ The database ships with the repository, so no data setup is needed.
 | `python -m ray --ask "…"` | Answer one question and write a transcript. | yes |
 | `pytest` | Run every test. | no |
 | `pytest -k tools` | Run the tool tests only. | no |
-| `python -m ray.dspy.compile_adjudicator` | Build step. Recompiles the adjudicator prompt. Needs `requirements-dev.txt`. | yes |
-| `python -m ray.dspy.compile_adjudicator --dry-run` | Builds the label sets and prints their sizes. Calls no model. | no |
+| `python -m ray.dspy.compile_reviewer` | Build step. Recompiles the verdict-reviewer prompt. Needs `requirements-dev.txt`. | yes |
+| `python -m ray.dspy.compile_reviewer --dry-run` | Builds the label sets and prints their sizes. Calls no model. | no |
+| `python -m ray.dspy.compile_correlator` | Build step. Recompiles the campaign-correlator prompt. Needs `requirements-dev.txt`. | yes |
+| `python -m ray.dspy.compile_correlator --dry-run` | Builds the label sets and scores the three shortcut baselines. Calls no model. | no |
 | `python scripts/record_transcripts.py --list` | List the recorded scenarios. | no |
 | `python scripts/record_transcripts.py 4` | Re-record one scenario. Uses a scratch database copy. | yes |
 
 No test calls a model. The data layer and the tool layer are therefore testable
 with no key present. See ADR-005.
 
-The build step is optional. `prompts/adjudicator.compiled.json` is committed, so a
-reviewer never needs to run it. See ADR-009.
+Both build steps are optional. `prompts/reviewer.compiled.json` and
+`prompts/correlator.compiled.json` are committed, so a reader never needs to run
+them. Three specialist prompts carry no compiled artifact, because the database holds
+no label for what they output. See ADR-009 and ADR-012.
 
 ## Environment variables
 
@@ -65,7 +70,7 @@ reviewer never needs to run it. See ADR-009.
 | `OCEAN_ANTHROPIC_KEY` | *(none)* | Required to run the agent. Never commit it. |
 | `RAY_MODEL` | `claude-haiku-4-5-20251001` | The model identifier. |
 | `RAY_DB_PATH` | `data/ocean_home_task.db` | Path to the SQLite database. |
-| `RAY_COMPILED_PROMPT` | `prompts/adjudicator.compiled.json` | The compiled adjudicator prompt. Ray falls back to the hand-written prompt when it is absent. |
+| `RAY_PROMPTS_DIR` | `prompts` | Directory holding the compiled artifacts, one per specialist. Ray falls back to the hand-written prompt for any that is absent. |
 | `RAY_HOST` | `127.0.0.1` | Portal bind address. |
 | `RAY_PORT` | `8765` | Portal port. |
 
@@ -75,8 +80,8 @@ reviewer never needs to run it. See ADR-009.
 |---|---|---|
 | Language | Python 3.11 or later | `deepagents` requires it. The brief requires it. |
 | Agent harness | `deepagents` 0.7.7 | The brief requires it. Ray uses its native subagent delegation. |
-| Model | Claude Haiku 4.5, through `langchain-anthropic` | The issued OpenAI key never received credit. See the note below and ADR-005. |
-| Reasoning | Three specialized subagents | ADR-008. |
+| Model | Claude Haiku 4.5, through `langchain-anthropic` | Directed substitution after the issued OpenAI key never received credit. See the note below and ADR-005. |
+| Reasoning | Five specialized subagents | ADR-008 sets the layer rule; ADR-011 sets the roster. |
 | Prompt engineering | DSPy, at build time only | ADR-009. The serving path loads a static artifact. |
 | Data | SQLite, through the standard library `sqlite3` | The supplied database. No ORM is needed for a read-only workload. |
 | Interface | FastAPI and one self-contained HTML page | ADR-007. |
@@ -85,9 +90,10 @@ reviewer never needs to run it. See ADR-009.
 ### Model substitution
 
 The brief specifies `gpt-5.6-luna`. **Ray runs Claude Haiku 4.5 instead.** The
-issued OpenAI key never received credit, so the project used the Anthropic key that
-was available. `RAY_MODEL` isolates the identifier, so the change costs one
-environment variable. ADR-005 records the decision and `NOTES.md` repeats it.
+OpenAI key issued for this task never received credit, and the move to an Anthropic
+model was directed rather than improvised. `RAY_MODEL` isolates the identifier, so the
+model costs one environment variable. ADR-005 records the decision and `NOTES.md`
+repeats it.
 
 `deepagents` already ships `langchain-anthropic`, so this substitution removes a
 dependency rather than adding one.
@@ -109,33 +115,42 @@ Capabilities 5a and 5b are the two additions beyond the four required ones.
 Ray also forms an independent verdict and reports where it diverges from the
 recorded one. Seven recorded verdicts in the database do not match their evidence.
 
-The measured result of the compiled adjudicator prompt, against a two-sided metric
+The measured result of the compiled reviewer prompt, against a two-sided metric
 that a constant "safe" answer cannot game:
 
 | Program | Agreement | Adversarial | Combined |
 |---|---|---|---|
-| Hand-written baseline | 0.625 | 0.688 | 0.6625 |
-| DSPy `BootstrapFewShot` | 0.833 | 0.688 | **0.7458** |
+| Hand-written baseline | 0.682 | 0.688 | 0.685 |
+| DSPy `BootstrapFewShot` | 0.773 | 0.688 | **0.722** |
 | Constant `safe` | high | **0.000** | far below both |
 
-`prompts/adjudicator.report.md` holds the report; ADR-009 explains the metric.
+`prompts/reviewer.report.md` holds the report; ADR-009 explains the metric.
 
 ## How Ray reasons
 
-Three specialized subagents handle the questions that a query cannot answer. See
-ADR-008.
+Five specialists handle the questions that a query cannot answer. They run in the
+three tiers a SOC runs. See ADR-008 and ADR-011.
 
-| Subagent | Question | The case it cracks |
-|---|---|---|
-| `auth-forensics` | Does the authentication result support the claimed sender? | A fake-CFO wire request that passes SPF, DKIM, and DMARC, because the attacker owns the lookalike domain. |
-| `campaign-correlator` | Which messages belong to the same activity? | A phishing message that carries no `campaign_id` but shares a link domain with 14 campaign members. |
-| `verdict-adjudicator` | What is the independent verdict, and does it diverge? | Seven recorded verdicts that the evidence does not support. |
+| Tier | Subagent | Question | The case it cracks |
+|---|---|---|---|
+| Triage | `triage-officer` | Which item do I work first, and which escalates? | A `credential_phishing` message that an analyst released and that still sits in a VIP inbox outranks a `malicious` message that is already quarantined. |
+| Investigation | `auth-forensics` | Does the authentication result support the claimed sender? | A fake-CFO wire request that passes SPF, DKIM, and DMARC, because the attacker owns the lookalike domain. |
+| Investigation | `campaign-correlator` | Which messages belong to the same activity? | Two activities: one whose 15th member carries no `campaign_id`, and one whose 7 members carry none at all, inside a domain that sends 154 messages. |
+| Investigation | `verdict-reviewer` | What is the independent verdict, and does it diverge? | Eight recorded verdicts that the evidence does not support. |
+| Response | `incident-responder` | What is the response, in what order, and what stays unknown? | A live credential-phishing message with no click telemetry anywhere in the data, so the plan is precautionary and says so. |
 
-The adjudicator prompt is compiled with DSPy against the database, and measured
-against a two-sided metric: agreement with the 2288 recorded decisions, and correct
-disagreement on 8 held-out rows whose recorded verdict is wrong. A one-sided metric
-would score a constant "safe" answer above 98 percent. `NOTES.md` reports the
-before-and-after number. See ADR-009.
+The response role is why `blast_radius` reports exposure facts and prescribes nothing:
+a tool that returns a judgement breaks the layer rule, so the judgement moved to a
+specialist that a prompt can address. See ADR-011.
+
+Two of the five prompts are compiled with DSPy against the database, each with a
+two-sided metric that no shortcut passes. The verdict-reviewer is scored on agreement with
+the 2288 recorded decisions and correct disagreement on 8 held-out rows; a one-sided
+metric would score a constant "safe" answer above 98 percent. The correlator is scored
+on recovered member sets, and its held-out half refuses a `campaign_id` join, a
+flagged-only filter, and a greedy answer. The other three prompts stay hand-written,
+because no recorded label exists for a priority order or a response plan. `NOTES.md`
+reports every number. See ADR-009 and ADR-012.
 
 ## Design guarantees
 

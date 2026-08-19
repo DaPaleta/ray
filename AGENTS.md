@@ -10,9 +10,10 @@ Read these, in this order, before you change a file.
 | # | Document | What you get |
 |---|---|---|
 | 1 | `docs/vision.md` | Purpose, scope, project goals, and the terminology table. |
-| 2 | `docs/tasks/ray-email-threat-investigator/plan.md` | The design. **Section 8 holds the ten implementation rules that bind your work. Section 9 holds the definition of done.** Section 2 records what the database actually contains. |
-| 3 | `docs/tasks/ray-email-threat-investigator/progress.md` | The current stage and the open items. |
-| 4 | `docs/decisions/` | The ten ADRs. Each rule in `plan.md` section 8 cites the ADR behind it. |
+| 2 | `docs/tasks/ray-email-threat-investigator/plan.md` | The design. **Section 8 holds the implementation rules IR1 to IR10 that bind your work. Section 9 holds the definition of done.** Section 2 records what the database actually contains. |
+| 3 | `docs/tasks/ray-email-threat-investigator/progress.md` | The delivered stages and the defects found. |
+| 4 | `docs/tasks/ray-soc-role-subagents/plan.md` | The current task. It amends IR7, extends IR8, and adds IR11. Its section 2 holds the five-specialist roster. |
+| 5 | `docs/decisions/` | The thirteen ADRs. Each rule in a `plan.md` section 8 cites the ADR behind it. |
 
 `docs/structure.md` owns the repository layout and the layer rules. `README.md`
 owns the commands, the environment variables, and the tech stack.
@@ -30,8 +31,9 @@ Ray serves one organization: Acme Robotics, primary domain `acme.com`.
 1. Read `plan.md` and follow it.
 2. Work the three priority tiers in `plan.md` section 5 in order. Do not start a
    tier-3 stage while a tier-1 stage is open.
-3. Put a query in `src/ray/tools/`. Put reasoning in `src/ray/subagents.py`.
-   `docs/structure.md` section 2 owns the layer rules.
+3. Put a query in `src/ray/tools/`. Put reasoning in `src/ray/subagents.py`. A tool
+   that returns a judgement breaks IR7, whatever it is called. `docs/structure.md`
+   section 2 owns the layer rules, and section 3a owns the roster.
 4. Verify every number you write against the database. Run the query. Six claims
    failed this check during planning, and `progress.md` records them.
 

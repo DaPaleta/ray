@@ -1,15 +1,21 @@
 # Ray — build-time dependencies. Not needed to run Ray.
 #
-# DSPy compiles the verdict-adjudicator prompt against the database. The compile
-# runs once and writes prompts/adjudicator.compiled.json. The serving path loads
-# that artifact and never imports DSPy. See ADR-009.
+# DSPy compiles two specialist prompts against the database. Each compile runs once
+# and writes its own artifact under prompts/. The serving path loads the artifacts and
+# never imports DSPy. See ADR-009 and ADR-012.
 #
 #   pip install -r requirements.txt -r requirements-dev.txt
-#   python -m ray.dspy.compile_adjudicator
+#   python -m ray.dspy.compile_reviewer
+#   python -m ray.dspy.compile_correlator
 
 -r requirements.txt
 
 dspy==3.3.0
+
+# MIPROv2 searches its instruction candidates with Optuna, and DSPy leaves the
+# dependency optional. The correlator compile uses MIPROv2, so it is pinned here.
+# See ADR-012.
+optuna==4.9.0
 
 # Note: DSPy reaches Anthropic through litellm, which reads ANTHROPIC_API_KEY.
 # The compile script copies OCEAN_ANTHROPIC_KEY into that variable. See ADR-005.

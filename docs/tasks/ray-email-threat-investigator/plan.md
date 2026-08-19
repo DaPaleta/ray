@@ -204,12 +204,12 @@ with the correct form, and 3 of the 41 do not belong.
 
 | # | Question | Answer |
 |---|---|---|
-| 1 | Model and key | Claude Haiku 4.5 through `OCEAN_ANTHROPIC_KEY`. The OpenAI key never received credit. The brief names `gpt-5.6-luna`, so `NOTES.md` states the substitution plainly. ADR-005. |
+| 1 | Model and key | Claude Haiku 4.5 through `OCEAN_ANTHROPIC_KEY`. The issued OpenAI key never received credit, so the move to an Anthropic model was directed. `NOTES.md` section 0 names the model. ADR-005. |
 | 2 | Interface | A local web portal. It stays open for the whole session. ADR-007. |
 | 3 | Database location | Commit the file to `data/`. `RAY_DB_PATH` overrides it. ADR-006. |
 | 4 | Fifth capability | Two capabilities: the blast-radius report with a remediation recommendation, and the watchlist loop. |
 | 5 | Reasoning decomposition | Three specialized subagents. ADR-008. |
-| 6 | Prompt engineering | DSPy compiles the adjudicator prompt offline, into a committed artifact. Timeboxed to 35 minutes, with the evaluation harness as the fallback. ADR-009. |
+| 6 | Prompt engineering | DSPy compiles the verdict-reviewer prompt offline, into a committed artifact. Timeboxed to 35 minutes, with the evaluation harness as the fallback. ADR-009. |
 | 7 | Real-time alerts | Cut. No event stream exists. A watchlist sweep replaces them. ADR-010. |
 
 ### 3.2 Assumptions this plan makes
@@ -338,7 +338,7 @@ ADR-004 records this.
 
 `get_detection` merges what were three tools. The analyzer results, the decision,
 and the remediation for a message are always needed together, so one call replaces
-three round trips. It is also exactly the input that the verdict-adjudicator needs,
+three round trips. It is also exactly the input that the verdict-reviewer needs,
 which keeps that subagent's prompt short.
 
 `entity_graph` replaces `campaign_intel` and earns its place three times over. It
@@ -389,6 +389,10 @@ state a fact that no row supports.
 
 ### 4.5a The three subagents
 
+**Amended.** ADR-011 raises the roster to five, in the three tiers a SOC runs.
+`docs/tasks/ray-soc-role-subagents/plan.md` section 2 owns the current roster and the
+tool sets. The three below are the investigation tier of it.
+
 ADR-008 holds the decision. Each subagent answers a question that needs judgement
 rather than a row lookup.
 
@@ -396,19 +400,19 @@ rather than a row lookup.
 |---|---|---|
 | `auth-forensics` | Does the authentication result support the claimed sender? | `276266c0`. SPF, DKIM, and DMARC all pass, because the attacker owns `acme-robotics.com`. A clean pass over a lookalike domain is evidence against the sender, and `stage2` drew the opposite conclusion from the same three fields. |
 | `campaign-correlator` | Which messages belong to the same activity? | `93bae03b`. Empty `campaign_id`, but it shares a link domain with 14 campaign members. |
-| `verdict-adjudicator` | What is the independent verdict, and does it diverge? | The 7 wrong recorded verdicts. ADR-009 compiles this prompt. |
+| `verdict-reviewer` | What is the independent verdict, and does it diverge? | The 7 wrong recorded verdicts. ADR-009 compiles this prompt. |
 
-The adjudicator forms its verdict from the evidence bundle **before** it reads the
+The verdict-reviewer forms its verdict from the evidence bundle **before** it reads the
 recorded verdict. Otherwise the recorded verdict anchors the answer, and a
 divergence would never appear.
 
-### 4.5b The compiled adjudicator prompt
+### 4.5b The compiled reviewer prompt
 
 ADR-009 holds the decision. The short version:
 
-1. `src/ray/dspy/compile_adjudicator.py` runs at build time. It writes
-   `prompts/adjudicator.compiled.json`, which is committed.
-2. `agent.py` loads that artifact into the adjudicator subagent. Nothing imports
+1. `src/ray/dspy/compile_reviewer.py` runs at build time. It writes
+   `prompts/reviewer.compiled.json`, which is committed.
+2. `agent.py` loads that artifact into the verdict-reviewer subagent. Nothing imports
    DSPy at request time, and `requirements.txt` excludes it.
 3. **The metric is two-sided.** It rewards agreement with the 2288 recorded
    decisions, and it rewards correct **disagreement** on 8 held-out rows: the 5
@@ -466,8 +470,9 @@ instance wires in cleanly. This is verified, not assumed. `deepagents` also decl
 `langchain-anthropic` as a dependency, so this choice adds no package.
 
 **The brief names `gpt-5.6-luna`.** Ray does not run it, because the issued OpenAI
-key never received credit. ADR-005 records the decision, risk R1 accepts the
-deviation, and criterion 31 makes the `NOTES.md` disclosure mandatory.
+key never received credit and the substitution to Anthropic was directed on that
+basis. ADR-005 records the decision, and criterion 31 keeps the model named in
+`NOTES.md`.
 
 No test calls a model. The whole tool layer and the whole data layer are testable
 offline, so the graded grounding requirement never depends on a key. ADR-005
@@ -516,7 +521,7 @@ largest derisking step in the plan.
 | # | Stage | Minutes | Output |
 |---|---|---|---|
 | 9 | Capability 5a and 5b | 15 | `exposure.py`, plus `watchlist_sweep` in `memory.py`. Blast radius with a remediation recommendation, and the watchlist sweep. |
-| 10 | DSPy compile | 35 | `dspy/metric.py`, `dspy/compile_adjudicator.py`, `prompts/adjudicator.compiled.json`, and the before-and-after table in `NOTES.md`. **Hard timebox.** |
+| 10 | DSPy compile | 35 | `dspy/metric.py`, `dspy/compile_reviewer.py`, `prompts/reviewer.compiled.json`, and the before-and-after table in `NOTES.md`. **Hard timebox.** |
 
 ### Tier 3 — goal 3, visibility (about 25 minutes)
 
@@ -549,7 +554,6 @@ Risk R2 tracks the overrun. The tier order is the mitigation.
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
-| R1 | The submission does not run `gpt-5.6-luna`, which the brief names. | **High** | Accepted, not mitigated. The analyst chose Haiku because the OpenAI key never received credit. `NOTES.md` states the substitution and the reason plainly. ADR-005. Criterion 27 asserts the disclosure. |
 | R2 | The 3-hour budget cannot hold all three tiers. | **High** | Section 5 states the overrun openly and orders the work into three cut lines. Tier 1 alone is a compliant submission. Stage 7 puts the required artifacts before any presentation work. |
 | R3 | The agent answers without a citation. | Medium | `grounding.py` detects this after the fact and the portal shows the warning. The prompt states the format. |
 | R4 | A relative-window question drops rows. See 2.7. | Medium | Resolve the window in code with no upper bound. The tool reports the window. |
@@ -557,9 +561,9 @@ Risk R2 tracks the overrun. The tier order is the mitigation.
 | R6 | An injection succeeds. | Medium | Five layers in 4.7. A test asserts the behaviour for all 6 messages. |
 | R7 | Haiku rejects a tool schema or a parameter type. | Low | Keep every tool input flat and scalar. No nested object in a tool signature. |
 | R8 | The committed database triggers a review objection. | Low | ADR-006 states the reason. The file is 1.9 MB and it is supplied data, not a secret. |
-| R9 | Haiku is a small model, so it may return prose instead of a decision, or skip a delegation. | **High** | Give each subagent a narrow tool set and a required output shape. ADR-009 measures the adjudicator, so this risk is quantified rather than guessed. Report the measured score in `NOTES.md` even when it is poor. |
+| R9 | Haiku is a small model, so it may return prose instead of a decision, or skip a delegation. | **High** | Give each subagent a narrow tool set and a required output shape. ADR-009 measures the verdict-reviewer, so this risk is quantified rather than guessed. Report the measured score in `NOTES.md` even when it is poor. |
 | R10 | The DSPy integration overruns its 35-minute timebox. | **High** | The fallback is the evaluation harness with the hand-written prompt. The metric and the reported number survive, and only the optimizer is lost. ADR-009. |
-| R11 | Three subagents each cost a delegation round trip, so a full investigation is slow. | Medium | Ray delegates only when a question needs judgement. A retrieval question stays in the main agent. |
+| R11 | Each subagent costs a delegation round trip, so a full investigation is slow. | Medium | Ray delegates only when a question needs judgement. A retrieval question stays in the main agent. |
 | R12 | The compiled artifact drifts from the hand-written source prompt. | Low | Commit the artifact together with the score that produced it. Keep both prompts in the repository. |
 
 ## 7. Acceptance criteria
@@ -643,7 +647,7 @@ A criterion is met only when a test or a saved transcript demonstrates it.
 
 **Compiled prompt (ADR-009)**
 
-25. `prompts/adjudicator.compiled.json` exists, and `agent.py` loads it. Ray runs
+25. `prompts/reviewer.compiled.json` exists, and `agent.py` loads it. Ray runs
     with the hand-written prompt and reports the fallback when the file is absent.
 26. `NOTES.md` reports the two-sided metric as a number for the hand-written prompt
     and for the compiled prompt, and it states the metric definition.
@@ -655,8 +659,8 @@ A criterion is met only when a test or a saved transcript demonstrates it.
 29. `transcripts/` holds 5 saved runs, including criterion 11.
 30. `NOTES.md` states the design decisions, the two added capabilities and their
     justification, the AI usage, and the next steps.
-31. `NOTES.md` states that Ray runs Claude Haiku 4.5 and not `gpt-5.6-luna`, and it
-    gives the reason. This criterion is not optional. See R1.
+31. `NOTES.md` names the model Ray runs on, so a reader knows what produced the
+    recorded transcripts. See ADR-005.
 32. No key appears in any committed file.
 
 ## 8. Implementation rules
@@ -707,12 +711,15 @@ The analyst confirms every proposed record before Ray writes it. ADR-003.
 `.env` is excluded. Read every secret from an environment variable. The key is
 `OCEAN_ANTHROPIC_KEY`.
 
-Ray runs Claude Haiku 4.5, not `gpt-5.6-luna`. `NOTES.md` must state the
-substitution, per criterion 31. Do not remove that statement. ADR-005 and R1.
+Ray runs Claude Haiku 4.5, not `gpt-5.6-luna`. `NOTES.md` names the model, per
+criterion 31. Do not remove that statement. ADR-005.
 
 ### IR7 — Reasoning belongs to a subagent, retrieval belongs to a tool
 
-Nine tools retrieve. Three subagents reason. Do not write a tool that returns a
+**Amended by ADR-011: five subagents reason, not three.** The rule itself is unchanged,
+and `docs/tasks/ray-soc-role-subagents/plan.md` section 8 owns the amendment.
+
+Nine tools retrieve. The subagents reason. Do not write a tool that returns a
 verdict, a conclusion, or a judgement. Do not make a subagent that only forwards
 tool output. ADR-008.
 
@@ -721,11 +728,13 @@ and authentication only, so untrusted content has no place in its context.
 
 ### IR8 — DSPy runs at build time only
 
+**Extended by ADR-012: the rule now covers every compiled artifact, one per specialist.**
+
 Nothing in the serving path imports DSPy. `requirements.txt` must not list it, and
-`src/ray/dspy/` stays outside the four layers. The compile writes
-`prompts/adjudicator.compiled.json`, and `agent.py` loads that file. When the file
-is absent, fall back to the hand-written prompt and report the fallback. Do not
-crash. ADR-009.
+`src/ray/dspy/` stays outside the four layers. Each compile writes its own artifact under
+`prompts/`, and `agent.py` loads each one by specialist name. When an artifact is
+absent, fall back to the hand-written prompt for that specialist and report the
+fallback. Do not crash. ADR-009.
 
 The metric stays **two-sided**, per section 4.5b. Never optimize against agreement
 alone.
@@ -773,9 +782,9 @@ A change is done when all of the following hold.
    query. Do not restate a number from memory. Section 2 of `progress.md` records
    six claims that failed this check during planning.
 6. **A repository-wide secret scan passes.** `grep -rE 'sk-ant-|sk-proj-|sk-[A-Za-z0-9]{20,}'`
-   returns nothing outside a test that assembles a fake from parts. A live key reached
-   four committed transcripts through `repr(RayContext)`; `progress.md` defect 6
-   records it. Run this before every commit, not at the end.
+   returns nothing outside a test that assembles a fake from parts. Run this before
+   every commit, not at the end. A transcript is a shared file, so the trace layer
+   carries three layers of redaction; `progress.md` records the design.
 
 ## 10. Out of scope for this task
 

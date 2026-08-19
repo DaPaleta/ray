@@ -1,4 +1,4 @@
-# Adjudicator compile report
+# Reviewer compile report
 
 Model: `claude-haiku-4-5-20251001`
 
@@ -6,7 +6,7 @@ Metric: Two-sided (ADR-009): score_verdict grades a predicted verdict against an
 
 | | agreement | adversarial | combined |
 |---|---|---|---|
-| baseline (hand-written) | 0.625 | 0.688 | 0.662 |
-| compiled (DSPy) | 0.833 | 0.688 | 0.746 |
+| baseline (hand-written) | 0.682 | 0.688 | 0.685 |
+| compiled (DSPy) | 0.773 | 0.688 | 0.722 |
 
-n_agreement = 12, n_adversarial = 8
+n_agreement = 22, n_adversarial = 8

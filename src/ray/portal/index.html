@@ -205,6 +205,55 @@
     color: var(--muted);
   }
 
+  /* --- thinking indicator ---
+     A turn takes 30s or more, and the page has nothing to show until it ends.
+     The spinner says the page is alive, the clock says the turn is alive, and
+     the step line says the server is alive. See ADR-014. */
+
+  .pending-line { display: flex; align-items: baseline; gap: .45rem; }
+
+  .spinner {
+    flex: none;
+    width: .8em;
+    height: .8em;
+    align-self: center;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: ray-spin .8s linear infinite;
+  }
+
+  @keyframes ray-spin { to { transform: rotate(360deg); } }
+
+  .pending-elapsed {
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  .pending-step {
+    margin-top: .2rem;
+    padding-left: 1.25rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  /* No poll has come back for a while. The turn may still be running, so this
+     warns and never claims the turn failed. */
+  .pending.pending-stalled { color: var(--warn-text); }
+
+  .pending.pending-stalled .spinner { border-top-color: var(--warn-text); }
+
+  .pending-answer { animation: ray-pulse 1.6s ease-in-out infinite; }
+
+  @keyframes ray-pulse { 50% { opacity: .45; } }
+
+  /* Motion is decoration here. The clock carries the same information without
+     it, so a reduced-motion reader loses nothing. */
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: none; opacity: .7; }
+    .pending-answer { animation: none; }
+  }
+
   /* --- chips --- */
 
   .chip {
@@ -314,17 +363,21 @@
     opacity: .75;
   }
 
-  /* A distinct hue per specialist. Colour is a shortcut, never the only signal —
-     the badge always carries the specialist's name as text. */
+  /* A distinct hue per specialist, one per SOC tier neighbour. Colour is a shortcut,
+     never the only signal — the badge always carries the specialist's name as text. */
+  .badge-triage { color: #a16207; background: #fef9c3; }
   .badge-auth { color: #b45309; background: #fef3c7; }
   .badge-campaign { color: #6d28d9; background: #ede9fe; }
   .badge-verdict { color: #0e7490; background: #cffafe; }
+  .badge-response { color: #be123c; background: #ffe4e6; }
   .badge-other { color: var(--muted); background: var(--panel-bg); }
 
   @media (prefers-color-scheme: dark) {
+    .badge-triage { color: #fde047; background: #422006; }
     .badge-auth { color: #fcd34d; background: #422006; }
     .badge-campaign { color: #c4b5fd; background: #2e1065; }
     .badge-verdict { color: #67e8f9; background: #083344; }
+    .badge-response { color: #fda4af; background: #4c0519; }
   }
 
   .call-subagent {
@@ -435,8 +488,13 @@
         <textarea id="question-input" rows="2" placeholder="Ask Ray about the corpus…"></textarea>
         <button type="submit" id="ask-button">Ask</button>
       </form>
-      <div id="pending-indicator" class="pending hidden">
-        Ray is investigating… a turn can take 30 seconds or more.
+      <div id="pending-indicator" class="pending hidden" role="status" aria-live="polite">
+        <div class="pending-line">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="pending-text">Ray is investigating…</span>
+          <span id="pending-elapsed" class="pending-elapsed"></span>
+        </div>
+        <div id="pending-step" class="pending-step"></div>
       </div>
     </section>
 
@@ -647,9 +705,137 @@
   var asking = false;
   var currentAnswerEl = null;
 
+  // --- the thinking indicator (ADR-014) -------------------------------------
+  // A turn takes 30 seconds or more, and POST /api/ask returns nothing until it
+  // ends. Three things tell the analyst that nothing is broken: a spinner (the
+  // page is alive), a clock (the turn is alive), and a poll of /api/progress
+  // (the server is alive). When the poll stops answering, the indicator says so
+  // — that is the half of a keepalive an animation alone cannot give.
+
+  var POLL_EVERY_TICKS = 3;       // one progress poll every third second
+  var STALL_AFTER_FAILURES = 2;   // consecutive failed polls before we warn
+
+  var tickTimer = null;
+  var pollInFlight = false;
+  var askStartedAt = 0;
+  var ticks = 0;
+  var pollFailures = 0;
+  // The number of turns the server had finished before this one. `ray.ask`
+  // calls `session.start()` inside the threadpool worker, so an early poll can
+  // still see the *previous* turn. Until the count grows past this baseline,
+  // the steps on the wire belong to the last question, not to this one.
+  var baselineTurnCount = null;
+  var thisTurnStarted = false;
+  var latestSteps = [];
+  var answerDrafted = false;
+  var turnFailed = false;
+
+  function formatElapsed(millis) {
+    var total = Math.max(0, Math.round(millis / 1000));
+    var secs = total % 60;
+    return Math.floor(total / 60) + ":" + (secs < 10 ? "0" : "") + secs;
+  }
+
+  async function fetchProgress() {
+    var res = await fetch("/api/progress", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  }
+
+  // Read the turn count before the ask is sent, so a poll that lands early
+  // cannot be mistaken for progress on this turn. Null means the baseline is
+  // unknown, and the indicator then reports no steps at all rather than the
+  // wrong ones.
+  async function readBaselineTurnCount() {
+    try {
+      var data = await fetchProgress();
+      return typeof data.turn_count === "number" ? data.turn_count : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async function pollProgress() {
+    if (pollInFlight) return;
+    pollInFlight = true;
+    try {
+      var data = await fetchProgress();
+      pollFailures = 0;
+      if (baselineTurnCount !== null && (data.turn_count || 0) > baselineTurnCount) {
+        thisTurnStarted = true;
+      }
+      latestSteps = thisTurnStarted ? (data.steps || []) : [];
+      // `answer` is set before the grounding check runs, so a finished turn on
+      // the wire while the ask is still open means Ray is in the tail: checking
+      // citations, and re-citing once if the check failed.
+      turnFailed = thisTurnStarted && !!data.error;
+      answerDrafted = thisTurnStarted && !!data.done && !turnFailed;
+    } catch (err) {
+      pollFailures += 1;
+    } finally {
+      pollInFlight = false;
+      renderPending();
+    }
+  }
+
+  function pendingStepText() {
+    if (baselineTurnCount === null) return "";
+    if (!thisTurnStarted) return "starting the turn…";
+    if (turnFailed) return "the turn ended with an error — loading the trace…";
+    if (answerDrafted) return "answer drafted — checking every citation against the database…";
+    if (!latestSteps.length) return "no tool call recorded yet";
+    var last = latestSteps[latestSteps.length - 1];
+    var name = last.name || "(unnamed tool)";
+    var who = last.subagent ? " · " + last.subagent : "";
+    var count = latestSteps.length === 1 ? "1 tool call" : latestSteps.length + " tool calls";
+    return count + " · last: " + name + who;
+  }
+
+  function renderPending() {
+    var indicator = document.getElementById("pending-indicator");
+    var stalled = pollFailures >= STALL_AFTER_FAILURES;
+    indicator.classList.toggle("pending-stalled", stalled);
+    document.getElementById("pending-text").textContent = stalled
+      ? "The portal has not answered the last " + pollFailures +
+        " status checks. The turn may still be running — still waiting."
+      : "Ray is investigating…";
+    document.getElementById("pending-elapsed").textContent =
+      formatElapsed(Date.now() - askStartedAt);
+    // textContent, never markup: a tool name comes from the server.
+    document.getElementById("pending-step").textContent = pendingStepText();
+  }
+
+  function startPendingClock() {
+    stopPendingClock();
+    // Elapsed time comes from the wall clock, not from a tick count, because a
+    // background tab throttles the interval.
+    askStartedAt = Date.now();
+    ticks = 0;
+    pollFailures = 0;
+    thisTurnStarted = false;
+    answerDrafted = false;
+    turnFailed = false;
+    latestSteps = [];
+    renderPending();
+    tickTimer = window.setInterval(function () {
+      ticks += 1;
+      if (ticks % POLL_EVERY_TICKS === 0) pollProgress();
+      renderPending();
+    }, 1000);
+  }
+
+  function stopPendingClock() {
+    if (tickTimer !== null) {
+      window.clearInterval(tickTimer);
+      tickTimer = null;
+    }
+  }
+
   function setPending(isPending) {
     document.getElementById("pending-indicator").classList.toggle("hidden", !isPending);
     document.getElementById("ask-button").disabled = isPending;
+    if (isPending) startPendingClock();
+    else stopPendingClock();
   }
 
   function appendPendingQuestion(question) {
@@ -688,16 +874,21 @@
     renderGraph(turn.graph || {});
   }
 
+  // The five specialists of ADR-011, in the three tiers a SOC runs.
   var SPECIALIST_CLASS = {
+    "triage-officer": "badge-triage",
     "auth-forensics": "badge-auth",
     "campaign-correlator": "badge-campaign",
-    "verdict-adjudicator": "badge-verdict"
+    "verdict-reviewer": "badge-verdict",
+    "incident-responder": "badge-response"
   };
 
   var SPECIALIST_ROLE = {
-    "auth-forensics": "judged whether the authentication supports the claimed sender",
-    "campaign-correlator": "established which messages belong to the same activity",
-    "verdict-adjudicator": "formed an independent verdict and compared it with the record"
+    "triage-officer": "ordered the queue and escalated each item (triage)",
+    "auth-forensics": "judged whether the authentication supports the claimed sender (investigation)",
+    "campaign-correlator": "established which messages belong to the same activity (investigation)",
+    "verdict-reviewer": "formed an independent verdict and compared it with the record (investigation)",
+    "incident-responder": "recommended the response, in order, and named what stays unknown (response)"
   };
 
   // A badge per specialist that took part in this turn. Hidden when the main agent
@@ -1006,6 +1197,9 @@
     setPending(true);
     appendPendingQuestion(question);
     input.value = "";
+    // Before the ask, never after: a baseline read afterwards could already
+    // count this turn, and the indicator would never leave "starting the turn…".
+    baselineTurnCount = await readBaselineTurnCount();
     try {
       var res = await fetch("/api/ask", {
         method: "POST",
@@ -1022,7 +1216,10 @@
       }
     } finally {
       asking = false;
+      // Stops the clock and the progress poll. In `finally`, so neither one
+      // leaks past the turn on the error path.
       setPending(false);
+      baselineTurnCount = null;
       await loadState();
     }
   });

@@ -29,8 +29,27 @@ class Startup:
     database: str
     message_count: int
     memory_count: int
-    prompt_status: str
+    prompt_statuses: list[str]
     key_present: bool
+
+    @property
+    def prompt_status(self) -> str:
+        """One line for the portal header. The full list goes into `notes`."""
+        compiled = [line for line in self.prompt_statuses if "compiled from" in line]
+        return (
+            f"{len(compiled)} of {len(self.prompt_statuses)} specialist prompts compiled"
+            if compiled
+            else "hand-written (no compiled artifact found)"
+        )
+
+    @property
+    def prompt_detail(self) -> list[str]:
+        """One line per specialist. The CLI prints these; the portal header does not.
+
+        `notes` stays four lines, because the portal renders it as a row of chips and
+        five indented lines would read as noise there.
+        """
+        return list(self.prompt_statuses)
 
     @property
     def notes(self) -> list[str]:
@@ -38,7 +57,7 @@ class Startup:
             f"Model: {self.model} (the brief names {BRIEF_MODEL}; see NOTES.md)",
             f"Database: {self.database} — {self.message_count} messages",
             f"Organizational memory: {self.memory_count} records",
-            f"Adjudicator prompt: {self.prompt_status}",
+            f"Specialist prompts: {self.prompt_status}",
         ]
         if not self.key_present:
             lines.append("No API key found. Ray cannot answer until one is set.")
@@ -54,7 +73,9 @@ class Ray:
         self.session = Session(model=self.cfg.model)
         self.ctx = subagents.RayContext(cfg=self.cfg, conn=self.conn, session=self.session)
         self.registry = subagents.build_tools(self.ctx)
-        self.compiled_prompt, self.prompt_status = subagents.load_compiled_prompt(self.cfg)
+        self.compiled_prompts, self.prompt_statuses = subagents.load_compiled_prompts(
+            self.cfg
+        )
         self._agent: Any | None = None
         self._messages: list[Any] = []
 
@@ -66,7 +87,7 @@ class Ray:
             database=str(self.cfg.db_path),
             message_count=int(db.scalar(self.conn, "SELECT COUNT(*) FROM messages") or 0),
             memory_count=int(db.scalar(self.conn, "SELECT COUNT(*) FROM agent_memory") or 0),
-            prompt_status=self.prompt_status,
+            prompt_statuses=list(self.prompt_statuses),
             key_present=self.cfg.has_key,
         )
 
@@ -91,7 +112,7 @@ class Ray:
                 model=self._build_model(),
                 tools=list(self.registry.values()),
                 system_prompt=prompts.SYSTEM_PROMPT,
-                subagents=subagents.build_subagents(self.ctx, self.compiled_prompt),
+                subagents=subagents.build_subagents(self.ctx, self.compiled_prompts),
             )
         return self._agent
 
@@ -145,19 +166,38 @@ class Ray:
         uncited = grounding.warn_if_uncited(turn.answer)
         if uncited:
             turn.grounding["uncited_warning"] = uncited
+        pseudo = grounding.find_pseudo_citations(turn.answer)
+        if pseudo:
+            turn.grounding["pseudo_citations"] = pseudo
+            turn.grounding["summary"] = (
+                turn.grounding["summary"]
+                + " A tool name in brackets is not a citation: "
+                + ", ".join(pseudo)
+                + "."
+            )
 
     def _needs_recite(self, turn: Turn) -> bool:
         if turn.error or not turn.answer.strip():
             return False
         grounded = turn.grounding
-        if grounded.get("failures"):
+        if grounded.get("failures") or grounded.get("pseudo_citations"):
             return True
         return bool(grounded.get("uncited_warning")) and grounded.get("citation_count") == 0
 
     def _recite(self, turn: Turn) -> None:
         """Ask once for the same answer with real citations. Never changes findings."""
         failures = turn.grounding.get("failures") or []
-        if failures:
+        pseudo = turn.grounding.get("pseudo_citations") or []
+        if failures and pseudo:
+            problem = (
+                "these citations do not match any row in the database: "
+                + ", ".join(failures[:8])
+                + "; and these are tool names, not rows: "
+                + ", ".join(pseudo[:8])
+            )
+        elif pseudo:
+            problem = "these are tool names, not rows: " + ", ".join(pseudo[:8])
+        elif failures:
             problem = (
                 "these citations do not match any row in the database: "
                 + ", ".join(failures[:8])
@@ -176,6 +216,9 @@ class Ray:
             "  [analyzer:<8-char id>/<analyzer name>]  [link:<8-char message id>]\n"
             "  [remediation:<8-char message id>]       [user:<user id>]\n"
             "  [mem:<memory id>]\n\n"
+            "One bracket holds exactly ONE identifier. "
+            "[decision:41fe8ce8, decision:d0e20c68] is two ids in one bracket and fails "
+            "the check; write [decision:41fe8ce8] [decision:d0e20c68] instead.\n\n"
             "A tool name in brackets, such as [domain_intel] or [find_messages], is "
             "NOT a citation. Use the message ids the tools returned. Do not invent an "
             "id, and do not cite an analyzer that did not run on that message. If a "

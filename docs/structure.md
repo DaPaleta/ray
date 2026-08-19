@@ -22,8 +22,10 @@ ray/
 │   └── ocean_home_task.db        The supplied SQLite database. Ray's only source of truth.
 │
 ├── prompts/
-│   ├── adjudicator.compiled.json The DSPy build artifact. Committed. See ADR-009.
-│   └── adjudicator.report.md     The before-and-after compile report.
+│   ├── reviewer.compiled.json The verdict-reviewer DSPy artifact. Committed. See ADR-009, ADR-013.
+│   ├── reviewer.report.md     Its before-and-after compile report.
+│   ├── correlator.compiled.json  The campaign-correlator DSPy artifact. Committed. See ADR-012.
+│   └── correlator.report.md      Its report, with the three shortcut baselines.
 │
 ├── src/ray/
 │   ├── __main__.py               Entry point. Starts the portal.
@@ -33,16 +35,19 @@ ray/
 │   ├── schemas.py                Typed inputs and outputs for every tool.
 │   ├── injection.py              Detects instruction-shaped content in body text.
 │   ├── grounding.py              Verifies that every citation matches a real row.
-│   ├── prompts.py                The system prompt and the three subagent prompts.
-│   ├── subagents.py              The three specialists. See ADR-008.
+│   ├── prompts.py                The system prompt and the five specialist prompts.
+│   ├── subagents.py              The five specialists. See ADR-008 and ADR-011.
 │   ├── agent.py                  Builds the deepagents agent and loads the compiled prompt.
 │   ├── trace.py                  Records the tool-call log for a turn. Serves goal 3.
 │   ├── tools/                    One module per tool family. See section 3.
 │   ├── dspy/
-│   │   ├── compile_adjudicator.py  Build-time only. Writes prompts/adjudicator.compiled.json.
-│   │   └── metric.py               The two-sided metric and the two label sets. See ADR-009.
+│   │   ├── compile_reviewer.py  Build-time only. Writes prompts/reviewer.compiled.json.
+│   │   ├── compile_correlator.py   Build-time only. Writes prompts/correlator.compiled.json.
+│   │   ├── metric.py               The verdict metric and its two label sets. See ADR-009.
+│   │   └── correlation.py          The set metric, the seeds, and the three shortcut baselines. See ADR-012.
 │   └── portal/
-│       ├── app.py                FastAPI application. Serves the page and the ask endpoint.
+│       ├── app.py                FastAPI application. Serves the page, the ask endpoint,
+│       │                         and the progress poll behind the thinking indicator.
 │       └── index.html            The single-page portal. Self-contained. Renders the graph.
 │
 ├── scripts/
@@ -58,7 +63,8 @@ ray/
     ├── structure.md              This file.
     ├── home-task-brief.pdf       The original brief.
     ├── decisions/                Architecture decision records. ADR-NNN-short-title.md.
-    └── tasks/<task-name>/
+    └── tasks/<task-name>/          ray-email-threat-investigator, ray-soc-role-subagents,
+                                    portal-thinking-indicator.
         ├── plan.md               Context, approach, scope, risks, acceptance criteria.
         ├── progress.md           Running implementation log.
         └── conversation.md       Decisions, questions, and analyst guidance.
@@ -102,17 +108,31 @@ layer. ADR-008 makes them subagents.
 
 ## 3a. Subagents
 
-`src/ray/subagents.py` holds three specialists. Each one reasons. None retrieves
-on its own account beyond the tools listed.
+`src/ray/subagents.py` holds five specialists, in the three tiers a SOC runs. Each one
+reasons. None retrieves on its own account beyond the tools listed. ADR-008 set the
+layer rule, and ADR-011 set this roster.
 
-| Subagent | Tools it may reach |
-|---|---|
-| `auth-forensics` | `get_message`, `find_users`, `domain_intel` |
-| `campaign-correlator` | `find_messages`, `domain_intel`, `entity_graph` |
-| `verdict-adjudicator` | `get_detection`, `get_message_body`, `recall` |
+| Tier | Subagent | Tools it may reach |
+|---|---|---|
+| Triage | `triage-officer` | `find_messages`, `get_detection`, `watchlist_sweep`, `recall` |
+| Investigation | `auth-forensics` | `get_message`, `find_users`, `domain_intel` |
+| Investigation | `campaign-correlator` | `find_messages`, `domain_intel`, `entity_graph` |
+| Investigation | `verdict-reviewer` | `get_detection`, `get_message`, `get_message_body`, `recall` |
+| Response | `incident-responder` | `blast_radius`, `get_detection`, `find_users`, `recall` |
 
-`auth-forensics` must not receive `get_message_body`. It reasons about headers and
-authentication only, so untrusted content has no place in its context.
+**Only `verdict-reviewer` reaches `get_message_body`.** A pretext is evidence for a
+verdict, so it needs the wording. Three of the other four are excluded by decision:
+`auth-forensics` reasons about headers, `triage-officer` orders recorded fields, and
+`incident-responder` works from exposure rows. `campaign-correlator` works over
+indicators, so a body would only widen an already wide context.
+`subagents.NO_BODY_ACCESS` holds the set, and a test asserts it against the table
+above.
+
+Two prompts are compiled, one artifact per specialist under `prompts/`:
+`verdict-reviewer` (ADR-009) and `campaign-correlator` (ADR-012). The other three
+stay hand-written, because the database holds no label for a priority order, a
+response plan, or an authentication judgement that the prompt's own rule does not
+already state.
 
 ## 4. File conventions
 

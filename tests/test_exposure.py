@@ -48,14 +48,22 @@ def test_acme_portal_remediation_split(conn):
     assert set(result.data["live_message_ids"]) == {PAYSLIP_FN_1, PAYSLIP_FN_2}
 
 
-def test_acme_portal_recommendation_names_the_two_live_messages(conn):
+def test_acme_portal_baseline_names_the_two_live_messages(conn):
+    """The tool reports facts. The recommendation is the incident-responder's (IR7)."""
     result = exposure.blast_radius(conn, PHISH_DOMAIN)
-    assert "RECOMMENDATION" in result.text
-    assert "quarantine" in result.text.lower()
+    assert "Remediation baseline: 13 sibling message(s)" in result.text
     assert schemas.short(PAYSLIP_FN_1) in result.text
     assert schemas.short(PAYSLIP_FN_2) in result.text
     # Ray recommends; Ray never claims to have acted.
     assert "cannot quarantine or release" in result.text
+
+
+def test_blast_radius_prescribes_nothing(conn):
+    """A tool that returns a judgement breaks IR7. ADR-011 moved this to a specialist."""
+    for indicator in (PHISH_DOMAIN, QUAYSTONE_DOMAIN, "acme-robotics.com"):
+        text = exposure.blast_radius(conn, indicator).text
+        assert "RECOMMENDATION" not in text, indicator
+        assert "incident-responder" in text, indicator
 
 
 def test_acme_portal_citations_present(conn):
@@ -104,10 +112,11 @@ def test_quaystone_every_row_holds_the_same_recorded_facts(conn):
         assert row["overridden_by"] == "tunde.okafor@acme.com"
 
 
-def test_quaystone_no_false_quarantine_recommendation(conn):
-    """No sibling on this indicator was quarantined, so Ray must not invent one."""
+def test_quaystone_reports_no_baseline_rather_than_inventing_one(conn):
+    """No sibling on this indicator was quarantined, so no precedent exists."""
     result = exposure.blast_radius(conn, QUAYSTONE_DOMAIN)
-    assert "no remediation baseline" in result.text or "cannot quarantine or release" in result.text
+    assert "Remediation baseline: none" in result.text
+    assert "hold no precedent" in result.text
     assert "cannot quarantine or release" in result.text
 
 
@@ -188,5 +197,5 @@ def test_unresolvable_indicator_is_unknown(conn):
 
 def test_blast_radius_states_never_acts(conn):
     result = exposure.blast_radius(conn, PHISH_DOMAIN)
-    assert "recommend" in result.text.lower()
+    assert "recommendation comes from the incident-responder" in result.text
     assert "cannot quarantine or release" in result.text

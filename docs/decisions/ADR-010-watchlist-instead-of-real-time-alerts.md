@@ -46,7 +46,7 @@ first message only.
 
 **A simulated live feed that replays `received_at`.** Rejected. It is the single
 change in the plan that would make Ray state an unsupported fact, and it
-contradicts the primary goal of a data-centered agent. A reviewer who checks the
+contradicts the primary goal of a data-centered agent. A reader who checks the
 schema finds no event source.
 
 **A file watcher or a polling loop over the database.** Rejected. Nothing writes

@@ -1,7 +1,12 @@
 # ADR-008: Three specialized subagents, for reasoning that a query cannot do
 
 **Date:** 2026-08-19
-**Status:** accepted
+**Status:** accepted, and amended by ADR-011 and ADR-013
+
+ADR-011 raises the roster from three specialists to five, and it supplies the reasoning
+task that each new role earns its place with. The layer rule in this record is unchanged:
+reasoning belongs to a subagent, and retrieval belongs to a tool. Read "Three, and no
+more" below as the decision this record made, not as the current roster.
 
 ## Context
 
@@ -36,7 +41,7 @@ only the tools that it needs.
 |---|---|---|
 | **auth-forensics** | Does the authentication result support the claimed sender? | SPF, DKIM, DMARC against `organization.primary_domain`, and the lookalike distance of the sender domain. |
 | **campaign-correlator** | Which messages belong to the same activity? | Shared link domain, shared sender domain, shared subject, pretext sequence, and timing. Never `campaign_id` alone. |
-| **verdict-adjudicator** | What is the independent verdict, and does it diverge from the record? | The evidence bundle from `get_detection`, plus the memory records that apply. ADR-009 compiles this prompt. |
+| **verdict-reviewer** | What is the independent verdict, and does it diverge from the record? | The evidence bundle from `get_detection`, plus the memory records that apply. ADR-009 compiles this prompt. |
 
 Three, and no more. Each one earns its place with a reasoning task from the
 context section. A fourth subagent would need a fourth such task.
@@ -69,7 +74,7 @@ and ADR-009 would have nothing to compile.
 
 **Positive.** Reasoning sits at the reasoning layer, so each specialist prompt can
 be written and measured on its own. The tool count falls from 14 to 9. The
-adjudicator becomes one bounded module with labelled data behind it, which is what
+verdict-reviewer becomes one bounded module with labelled data behind it, which is what
 makes ADR-009 possible. The portal can name which specialist produced which
 finding, which serves the explainability goal.
 

@@ -15,7 +15,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 DEFAULT_DB_PATH = "data/ocean_home_task.db"
-DEFAULT_COMPILED_PROMPT = "prompts/adjudicator.compiled.json"
+DEFAULT_PROMPTS_DIR = "prompts"
+
+# One compiled artifact per specialist, named for the specialist (ADR-012). A
+# specialist absent from this map carries a hand-written prompt only, because the
+# database holds no label for what it outputs (IR11).
+COMPILED_ARTIFACTS: dict[str, str] = {
+    "verdict-reviewer": "reviewer.compiled.json",
+    "campaign-correlator": "correlator.compiled.json",
+}
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 
@@ -36,13 +44,13 @@ def _resolve(value: str) -> Path:
 class Config:
     db_path: Path
     model: str
-    # repr=False so the key can never reach a log, a trace, or a transcript through
-    # repr(config). It did once: a tool recorded its arguments with locals(), which
-    # inside a closure also returns free variables, so the whole RayContext — and with
-    # it this Config — was repr'd into four committed transcripts. The leak is fixed at
-    # its source, and this makes the same mistake harmless if it recurs.
+    # repr=False so the key cannot reach a log, a trace, or a transcript through
+    # repr(config). Any code that stringifies a whole context object — a debug print, a
+    # trace fallback that reprs an unknown value — would otherwise carry the key with
+    # it. Tool arguments are built explicitly for the same reason; this is the layer
+    # that holds if that discipline ever slips.
     api_key: str | None = field(default=None, repr=False)
-    compiled_prompt_path: Path = REPO_ROOT / DEFAULT_COMPILED_PROMPT
+    prompts_dir: Path = REPO_ROOT / DEFAULT_PROMPTS_DIR
     host: str = DEFAULT_HOST
     port: int = DEFAULT_PORT
 
@@ -50,9 +58,18 @@ class Config:
     def has_key(self) -> bool:
         return bool(self.api_key)
 
-    @property
-    def has_compiled_prompt(self) -> bool:
-        return self.compiled_prompt_path.is_file()
+    def artifact_path(self, subagent: str) -> Path | None:
+        """The compiled artifact for one specialist, or None when it has no target.
+
+        A specialist with no entry in COMPILED_ARTIFACTS is hand-written by decision,
+        not by accident. ADR-012 holds the test that decides which ones qualify.
+        """
+        filename = COMPILED_ARTIFACTS.get(subagent)
+        return None if filename is None else self.prompts_dir / filename
+
+    def has_artifact(self, subagent: str) -> bool:
+        path = self.artifact_path(subagent)
+        return path is not None and path.is_file()
 
     def require_key(self) -> str:
         """Return the key, or raise with the variable name to set."""
@@ -81,9 +98,7 @@ def load_config(env: dict[str, str] | None = None) -> Config:
         db_path=_resolve(get("RAY_DB_PATH", DEFAULT_DB_PATH)),
         model=get("RAY_MODEL", DEFAULT_MODEL),
         api_key=key or None,
-        compiled_prompt_path=_resolve(
-            get("RAY_COMPILED_PROMPT", DEFAULT_COMPILED_PROMPT)
-        ),
+        prompts_dir=_resolve(get("RAY_PROMPTS_DIR", DEFAULT_PROMPTS_DIR)),
         host=get("RAY_HOST", DEFAULT_HOST),
         port=int(get("RAY_PORT", str(DEFAULT_PORT))),
     )

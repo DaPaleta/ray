@@ -207,3 +207,33 @@ def test_verify_uses_the_shared_citation_kind_map(conn):
             continue  # agent_memory is empty; covered separately
         report = grounding.verify(conn, row_for_kind[kind])
         assert report.ok, f"{kind} citation unexpectedly failed: {report.failures}"
+
+
+# --- tool names dressed as citations (ADR-011 follow-up) ------------------------
+
+
+def test_a_tool_name_in_brackets_is_reported(conn):
+    """`[blast_radius]` looks like a citation and is not one. A live run produced it."""
+    found = grounding.find_pseudo_citations(
+        "The baseline supports quarantine [blast_radius] for both [msg:d0e20c68]."
+    )
+    assert found == ["[blast_radius]"]
+
+
+def test_pseudo_citations_are_deduplicated_and_ordered():
+    text = "[domain_intel] then [find_messages] then [domain_intel] again"
+    assert grounding.find_pseudo_citations(text) == ["[domain_intel]", "[find_messages]"]
+
+
+def test_a_real_citation_is_never_a_pseudo_citation():
+    for raw in ("[msg:93bae03b]", "[analyzer:93bae03b/stage2]", "[user:u_cfo]"):
+        assert grounding.find_pseudo_citations(raw) == []
+
+
+def test_the_mirrored_tool_names_match_the_built_registry(conn):
+    """A new tool must not slip past the detector (grounding.TOOL_NAMES)."""
+    from ray import config as config_module
+    from ray import subagents
+
+    ctx = subagents.RayContext(cfg=config_module.load_config(env={}), conn=conn)
+    assert set(grounding.TOOL_NAMES) == set(subagents.build_tools(ctx))

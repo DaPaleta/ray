@@ -1,4 +1,4 @@
-"""The two label sets and the two-sided metric for the adjudicator compile.
+"""The two label sets and the two-sided metric for the verdict-reviewer compile.
 
 ADR-009 requires a metric that cannot be fooled by a constant `safe` answer.
 This module builds:
@@ -7,7 +7,7 @@ This module builds:
     is sound, drawn from the database, never hardcoded row-by-row.
   - `ADVERSARIAL` — the 8 rows whose recorded verdict is wrong (held out of any
     few-shot selection).
-  - `build_evidence` — the evidence bundle an adjudicator reasons over. It never
+  - `build_evidence` — the evidence bundle a verdict-reviewer reasons over. It never
     leaks the recorded verdict, attack type, remediation, or override fields.
   - `score_verdict` / `two_sided_score` / `constant_safe_baseline` — the metric.
 
@@ -91,7 +91,7 @@ def agreement_examples(conn: sqlite3.Connection, limit: int = 40) -> list[dict[s
 
 
 def build_evidence(conn: sqlite3.Connection, message_id: str) -> str:
-    """The evidence bundle text an adjudicator reasons over.
+    """The evidence bundle text a verdict-reviewer reasons over.
 
     Includes sender, recipient with department, subject, SPF/DKIM/DMARC, the
     organization's primary domain, attachment names, every link with
@@ -101,7 +101,7 @@ def build_evidence(conn: sqlite3.Connection, message_id: str) -> str:
 
     Never includes the recorded verdict, attack type, remediation, or override
     fields (decisions.verdict, decisions.attack_type, decisions.overridden_by,
-    decisions.override_reason, remediations.action) — the adjudicator must not
+    decisions.override_reason, remediations.action) — the verdict-reviewer must not
     see the answer it is being scored against.
     """
     msg = db.one(

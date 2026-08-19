@@ -68,6 +68,7 @@ def create_app(ray: Any) -> FastAPI:
             "message_count": startup.message_count,
             "memory_count": startup.memory_count,
             "prompt_status": startup.prompt_status,
+            "prompt_detail": startup.prompt_detail,
             "key_present": startup.key_present,
             "memory_records": _memory_records(ray),
             "pending_memory": ray.pending_memory(),
@@ -82,6 +83,51 @@ def create_app(ray: Any) -> FastAPI:
             return JSONResponse(status_code=400, content={"error": "question is required"})
         turn = ray.ask(question)
         return turn.to_dict()
+
+    @app.get("/api/progress")
+    def progress() -> dict[str, Any]:
+        """Liveness and per-turn progress, for the portal's thinking indicator.
+
+        The page polls this while a `POST /api/ask` is in flight, so it reads
+        `Turn` attributes only. It runs no query, and it never calls
+        `ray.startup()` — a sqlite connection is bound to the thread that made
+        it, and the agent is using that connection in the threadpool worker.
+
+        `turn_count` exists so the page can tell this turn from the last one.
+        `ray.ask` calls `session.start()` inside the worker, so an early poll
+        still sees the previous, finished turn.
+
+        `steps` holds *completed* tool calls. A call is recorded when the tool
+        returns, so nothing here reports a call that is still running.
+        """
+        session = getattr(ray, "session", None)
+        turns = list(getattr(session, "turns", None) or [])
+        if not turns:
+            return {
+                "alive": True,
+                "turn_count": 0,
+                "steps": [],
+                "done": False,
+                "error": False,
+            }
+        turn = turns[-1]
+        calls = list(getattr(turn, "calls", None) or [])
+        return {
+            "alive": True,
+            "turn_count": len(turns),
+            "started_at": getattr(turn, "started_at", None),
+            "steps": [
+                {
+                    "name": getattr(call, "name", ""),
+                    "subagent": getattr(call, "subagent", None),
+                }
+                for call in calls
+            ],
+            "done": bool(getattr(turn, "answer", "") or getattr(turn, "error", None)),
+            # `ask` writes a stand-in answer on the error path too, so `done`
+            # alone cannot tell a drafted answer from a failed turn.
+            "error": bool(getattr(turn, "error", None)),
+        }
 
     @app.post("/api/memory/confirm")
     def confirm_memory(payload: ProposalRequest) -> dict[str, Any]:

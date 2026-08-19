@@ -12,10 +12,15 @@ matched both as a link domain and as a sender domain, exactly as `domain_intel`
 does, because `login-verify.acme-portal.co` reaches messages as a link domain and
 `quaystone-billing-portal.com` reaches them as a sender domain.
 
-The remediation recommendation is derived, never invented (plan.md 4.5): it names
-the messages that are still reachable in an inbox and proposes the action that
-their already-quarantined siblings received. Ray recommends. Ray never acts, and
-this module states that fact in every answer (docs/vision.md 4.2).
+This tool reports the **remediation baseline** as facts: how many sibling messages
+on the indicator were quarantined, which messages remain reachable in a mailbox, and
+the explicit absence of a baseline when no sibling was quarantined.
+
+It states no recommendation. An earlier version printed one, derived from a single
+rule, which put a judgement inside a tool and broke IR7. The `incident-responder`
+specialist forms the recommendation from these facts instead (ADR-011). Ray
+recommends. Ray never acts, and this module states that fact in every answer
+(docs/vision.md 4.2).
 """
 
 from __future__ import annotations
@@ -272,29 +277,37 @@ def blast_radius(
                 f"reason: \"{r['override_reason']}\""
             )
 
-    # --- recommendation (derived, not invented) ----------------------------
+    # --- remediation baseline: facts only, no prescription (IR7, ADR-011) ---
+    # An earlier version ended with a `RECOMMENDATION:` line computed from one rule.
+    # That is a judgement, and a judgement belongs to a specialist, not to a tool. The
+    # facts below are what the `incident-responder` specialist reasons over.
     if quarantined and live_rows:
         lines.append(
-            f"\nRECOMMENDATION: quarantine {', '.join(schemas.short(r['message_id']) for r in live_rows)} "
-            f"— {len(live_rows)} message(s) still in an inbox on this indicator. "
-            f"This matches the action already taken on {len(quarantined)} sibling "
-            "message(s) sharing the same indicator. Ray recommends this action; Ray "
-            "cannot quarantine or release any message itself."
+            f"\nRemediation baseline: {len(quarantined)} sibling message(s) on this "
+            f"indicator were quarantined, and {len(live_rows)} message(s) remain "
+            "reachable in a mailbox: "
+            + ", ".join(schemas.short(r["message_id"]) for r in live_rows)
+            + ". A precedent therefore exists for the action taken on this indicator."
         )
     elif live_rows:
         lines.append(
-            f"\nNo sibling message on this indicator has been quarantined, so no "
-            f"remediation baseline exists to recommend from. {len(live_rows)} "
-            f"message(s) remain in an inbox and need direct analyst review: "
+            f"\nRemediation baseline: none. No sibling message on this indicator has "
+            f"been quarantined, so the recorded rows hold no precedent. {len(live_rows)} "
+            "message(s) remain reachable in a mailbox: "
             + ", ".join(schemas.short(r["message_id"]) for r in live_rows)
-            + ". Ray recommends only; Ray cannot quarantine or release any message."
+            + "."
         )
     else:
         lines.append(
-            "\nNo further remediation is recommended; every message on this "
-            "indicator is already quarantined. Ray cannot quarantine or release "
-            "any message."
+            "\nRemediation baseline: every message on this indicator is already "
+            "quarantined, and none remains reachable in a mailbox."
         )
+
+    lines.append(
+        "\nThese are exposure facts. Ray cannot quarantine or release any message. "
+        "The response recommendation comes from the incident-responder specialist, "
+        "which reasons over the facts above."
+    )
 
     data: dict[str, Any] = {
         "resolved_kind": kind,

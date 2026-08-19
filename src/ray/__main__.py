@@ -14,6 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import subagents
 from .agent import Ray
 from .config import REPO_ROOT, load_config
 
@@ -28,16 +29,24 @@ def _slug(text: str, limit: int = 48) -> str:
     return slug.strip("-")[:limit] or "question"
 
 
-def _print_startup(ray: Ray) -> None:
-    for line in ray.startup().notes:
+def _print_startup(ray: Ray, *, detail: bool = False) -> None:
+    startup = ray.startup()
+    for line in startup.notes:
         print(f"  {line}")
+    if detail:
+        # One line per specialist. The portal header shows only the summary, so the
+        # readiness check is where an analyst sees which prompt each specialist runs.
+        for line in startup.prompt_detail:
+            print(f"    - {line}")
 
 
 def command_check(ray: Ray) -> int:
     """Report readiness. Calls no model, so it works without a key."""
     print("Ray readiness check")
-    _print_startup(ray)
+    _print_startup(ray, detail=True)
     print(f"  Tools registered: {len(ray.registry)} — {', '.join(sorted(ray.registry))}")
+    print(f"  Specialists: {len(subagents.SUBAGENT_TOOLS)} — "
+          f"{', '.join(subagents.SUBAGENT_TOOLS)}")
     if not ray.cfg.has_key:
         print("\n  NOT READY: set OCEAN_ANTHROPIC_KEY (see .env.example).")
         return 1
@@ -80,7 +89,13 @@ def command_ask(ray: Ray, question: str, out: Path | None, index: int | None) ->
         else TRANSCRIPT_DIR / f"{_slug(question)}.md"
     )
     ray.session.save_markdown(target)
-    print(f"\nTranscript written to {target.relative_to(REPO_ROOT)}")
+    # A path outside the repository has no relative form, and `--out` accepts any
+    # path. Report it absolutely rather than raising after the work is done.
+    try:
+        shown = target.relative_to(REPO_ROOT)
+    except ValueError:
+        shown = target
+    print(f"\nTranscript written to {shown}")
     return 1 if turn.error else 0
 
 

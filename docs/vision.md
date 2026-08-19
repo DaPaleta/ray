@@ -33,8 +33,9 @@ worst outcome, so grounding is a verified property and not a prompt promise.
 
 **Goal 2 — inventive.** Ray shows initiative beyond question answering. Three
 mechanisms carry this goal: specialized subagents for reasoning that a query
-cannot do (ADR-008), a compiled and measured adjudicator prompt (ADR-009), and a
-watchlist that applies what Ray learned (ADR-010).
+cannot do, in the three tiers a SOC runs (ADR-008, ADR-011); compiled and measured
+specialist prompts (ADR-009, ADR-012); and a watchlist that applies what Ray learned
+(ADR-010).
 
 **Goal 3 — visible.** The analyst can see how Ray reached an answer. The portal
 renders the entity graph behind a finding, and it records the full tool-call log
@@ -82,12 +83,17 @@ Each term below has one meaning. This project uses no synonym for any of them.
 | **finding** | One statement that Ray makes, with at least one citation. |
 | **blast radius** | The full set of recipients that one indicator reached, and the remediation state of each message. |
 | **data as of** | The `db_meta.data_as_of` value. Ray treats this instant as the present. |
-| **subagent** | One of the three specialists in ADR-008. It reasons. It does not retrieve. |
+| **subagent** | One of the five specialists in ADR-011. It reasons. It does not retrieve. |
+| **triage queue** | The set of items a triage question covers, in the order the triage-officer puts them. It is a pull over recorded rows, never a feed. |
+| **escalation** | The one specialist that a triage-officer names for an item, or a decision to close it. |
+| **case note** | The output shape every specialist uses: bottom line, evidence, confidence, gaps, handoff. |
+| **remediation baseline** | What the already-quarantined sibling messages on an indicator received. `blast_radius` reports it as a fact. It is not a recommendation. |
+| **response plan** | The ordered recommendation that the incident-responder forms from exposure facts. Ray recommends it. Ray never carries it out. |
 | **evidence bundle** | The combined analyzer results, decision, and remediation for one message. `get_detection` returns it. |
-| **independent verdict** | The verdict that the verdict-adjudicator subagent forms from the evidence bundle, without reading the recorded verdict first. |
+| **independent verdict** | The verdict that the verdict-reviewer subagent forms from the evidence bundle, without reading the recorded verdict first. |
 | **divergence** | A difference between the independent verdict and the recorded verdict. |
 | **entity graph** | Nodes for messages, users, domains, and campaigns, with edges for a shared indicator. |
-| **compiled prompt** | The prompt artifact that the DSPy build step writes. See ADR-009. |
+| **compiled prompt** | A prompt artifact that a DSPy build step writes, one per specialist. Two exist. See ADR-009 and ADR-012. |
 | **sweep** | One pass of every watch record across the corpus. It returns matches with citations. |
 
 ## 4. Scope
@@ -109,6 +115,10 @@ Capability 5a and capability 5b are the two additions that this project makes
 beyond the four required capabilities. `docs/tasks/ray-email-threat-investigator/plan.md`
 holds the argument for each one.
 
+Ray works these questions the way a SOC works them. A triage role orders the queue
+and escalates. Three investigation roles establish the finding. A response role
+recommends what to do, and never does it. ADR-011 holds the roster.
+
 Ray also forms an independent verdict on a message. Ray compares the independent
 verdict against the recorded verdict, and Ray reports a divergence. Seven recorded
 verdicts in the database do not match their evidence, so this is a working
@@ -119,8 +129,8 @@ capabilities, because each one supports all of the six above.
 
 | Mechanism | Purpose | Record |
 |---|---|---|
-| Specialized subagents | Reasoning that a query cannot do. | ADR-008 |
-| Compiled adjudicator prompt | A measured prompt, not a hand-tuned one. | ADR-009 |
+| Specialized subagents | Reasoning that a query cannot do, in the three tiers a SOC runs. | ADR-008, ADR-011 |
+| Compiled specialist prompts | A measured prompt, not a hand-tuned one, for every specialist that the data labels. | ADR-009, ADR-012 |
 | Entity graph and tool-call log | The analyst sees how Ray reached the answer. | ADR-007 |
 
 ### 4.2 Out of scope
@@ -150,8 +160,9 @@ capabilities, because each one supports all of the six above.
 6. Ray stores the CFO policy from capability 4. On a later turn Ray retrieves the
    policy and applies it to a message.
 7. A saved transcript shows Ray in a state where it does not know the answer.
-8. `NOTES.md` reports the adjudicator metric as a number, for the hand-written
-   prompt and for the compiled prompt.
+8. `NOTES.md` reports each compiled prompt's metric as a number, for the
+   hand-written prompt and for the compiled prompt, and it states which prompts carry
+   no number because the data holds no label for them.
 9. The portal renders the entity graph and the tool-call log for a turn.
 10. `NOTES.md` states the model substitution against the brief.
 

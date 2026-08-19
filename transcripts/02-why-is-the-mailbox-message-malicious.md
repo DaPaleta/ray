@@ -8,22 +8,25 @@
 
 # Why is the message with the subject "Action required: mailbox storage full" malicious?
 
-*Model: `claude-haiku-4-5-20251001` · 2026-08-19T10:30:45Z*
+*Model: `claude-haiku-4-5-20251001` · 2026-08-19T12:43:37Z*
 
 ## Answer
 
-The message is malicious because it is a **credential phishing attack** [msg:93bae03b]. Here's why:
+The message is malicious because it is a **credential phishing attack** using a quota-exhaustion pretext. Here's why:
 
 **The attack pattern:**
-1. **Spoofed sender**: The message claims to be from "Acme IT Service Desk" at `it-support@acme-servicedesk.com`, but this domain is a lookalike of the real `acme.com` [analyzer:93bae03b/sender-reputation]. Authentication failed (DKIM and DMARC both failed) [msg:93bae03b], confirming it is not actually from Acme IT.
 
-2. **Social engineering pretext**: The body uses a quota-exhaustion threat — "Your mailbox has reached 98% of its quota. Messages will stop being delivered within 24 hours" — to create urgency and pressure the recipient to act immediately [analyzer:93bae03b/nlp-analyzer].
+1. **Impersonation of internal IT** [msg:93bae03b]: The sender claims to be "Acme IT Service Desk" but authenticates from `it-support@acme-servicedesk.com`, which is not the organization's domain (`acme.com`). [analyzer:93bae03b/sender-reputation]
 
-3. **Malicious link**: The only link in the message points to `https://login-verify.acme-portal.co/session/renew`. This domain was registered just 11 days before the message was sent [analyzer:93bae03b/link-scanner], and the landing page renders a credential form styled to impersonate Acme's identity provider [analyzer:93bae03b/link-scanner]. The link itself was scanned as malicious [link:93bae03b].
+2. **Lookalike domain** [analyzer:93bae03b/sender-reputation]: The sender domain `acme-servicedesk.com` is a lookalike of the primary domain `acme.com`. The link domain `login-verify.acme-portal.co` follows the same pattern.
 
-4. **Coordinated campaign**: This message is part of the `acme-portal.co` campaign already observed in the system [analyzer:93bae03b/stage2].
+3. **Credential harvesting link** [analyzer:93bae03b/link-scanner]: The only link in the message points to `https://login-verify.acme-portal.co/session/renew`, which renders a credential form styled after the organization's identity provider. The domain was registered only 11 days before the message was delivered.
 
-**Verdict**: The message was correctly identified as malicious [decision:93bae03b] and has been quarantined, removing it from the recipient's inbox [remediation:93bae03b].
+4. **Urgency and pretext** [analyzer:93bae03b/nlp-analyzer]: The message uses a quota-exhaustion pretext ("98% of quota") with a 24-hour deadline to pressure the recipient into immediate action without thinking.
+
+5. **Consistent with known campaign** [analyzer:93bae03b/stage2]: This message is part of the `acme-portal.co` campaign already observed in the system.
+
+The message was correctly [decision:93bae03b] marked as malicious and [remediation:93bae03b] quarantined, removing it from the inbox.
 
 ## How Ray reached it
 
@@ -40,7 +43,27 @@ The message is malicious because it is a **credential phishing attack** [msg:93b
    93bae03b | 2026-08-07T05:00:00Z | it-support@acme-servicedesk.com | Action required: mailbox storage full | Priya Raman | finance    | malicious | credential_phishing | quarantined (removed from the inbox)
    ```
 
-**2. `get_detection`**
+**2. `get_message`**
+   - arguments: `message_id='93bae03b'`
+   - rows cited: [msg:93bae03b] [user:u_ctrl] [link:93bae03b]
+
+   ```
+   Message 93bae03b [msg:93bae03b]
+   Subject: Action required: mailbox storage full
+   Received: 2026-08-07T05:00:00Z
+   From: Acme IT Service Desk <it-support@acme-servicedesk.com>
+   To: Priya Raman (finance) [user:u_ctrl]
+   Authentication — SPF: pass, DKIM: fail, DMARC: fail
+   Attachments: []
+   Campaign id: (none)
+   
+   Links (1):
+   url                                               | domain                      | is_scanned | scan_verdict
+   --------------------------------------------------|-----------------------------|------------|-------------
+   https://login-verify.acme-portal.co/session/renew | login-verify.acme-portal.co | 1          | malicious
+   ```
+
+**3. `get_detection`**
    - arguments: `message_id='93bae03b'`
    - rows cited: [msg:93bae03b] [analyzer:93bae03b/link-scanner] [analyzer:93bae03b/nlp-analyzer] [analyzer:93bae03b/sender-reputation] [analyzer:93bae03b/stage2] [decision:93bae03b] [remediation:93bae03b]
 
@@ -62,26 +85,6 @@ The message is malicious because it is a **credential phishing attack** [msg:93b
    Remediation: action=quarantined (quarantined (removed from the inbox)), actioned_at=2026-08-07T05:01:20Z, actioned_by=auto [remediation:93bae03b]
    ```
 
-**3. `get_message`**
-   - arguments: `message_id='93bae03b'`
-   - rows cited: [msg:93bae03b] [user:u_ctrl] [link:93bae03b]
-
-   ```
-   Message 93bae03b [msg:93bae03b]
-   Subject: Action required: mailbox storage full
-   Received: 2026-08-07T05:00:00Z
-   From: Acme IT Service Desk <it-support@acme-servicedesk.com>
-   To: Priya Raman (finance) [user:u_ctrl]
-   Authentication — SPF: pass, DKIM: fail, DMARC: fail
-   Attachments: []
-   Campaign id: (none)
-   
-   Links (1):
-   url                                               | domain                      | is_scanned | scan_verdict
-   --------------------------------------------------|-----------------------------|------------|-------------
-   https://login-verify.acme-portal.co/session/renew | login-verify.acme-portal.co | 1          | malicious
-   ```
-
 **4. `get_message_body`**
    - arguments: `message_id='93bae03b'`
    - rows cited: [msg:93bae03b]
@@ -99,6 +102,6 @@ The message is malicious because it is a **credential phishing attack** [msg:93b
 
 ## Grounding check
 
-- citations checked: 10
+- citations checked: 8
 - every citation resolves to a real row: **True**
 

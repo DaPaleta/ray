@@ -33,8 +33,13 @@ class FakeStartup:
         self.database = "data/ocean_home_task.db"
         self.message_count = 2500
         self.memory_count = 1
-        self.prompt_status = "hand-written (no compiled prompt found)"
+        self.prompt_status = "2 of 5 specialist prompts compiled"
+        self.prompt_statuses = ["verdict-reviewer: compiled from reviewer.compiled.json"]
         self.key_present = True
+
+    @property
+    def prompt_detail(self) -> list[str]:
+        return list(self.prompt_statuses)
 
     @property
     def notes(self) -> list[str]:
@@ -42,7 +47,7 @@ class FakeStartup:
             f"Model: {self.model}",
             f"Database: {self.database} — {self.message_count} messages",
             f"Organizational memory: {self.memory_count} records",
-            f"Adjudicator prompt: {self.prompt_status}",
+            f"Specialist prompts: {self.prompt_status}",
         ]
 
 
@@ -229,6 +234,108 @@ def test_ask_rejects_empty_question(client: TestClient) -> None:
     assert res.status_code == 400
 
 
+# --- /api/progress: the thinking indicator (ADR-014) -------------------------
+
+
+def test_progress_before_any_turn_reports_a_live_server(client: TestClient) -> None:
+    res = client.get("/api/progress")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["alive"] is True
+    assert data["turn_count"] == 0
+    assert data["steps"] == []
+    assert data["done"] is False
+
+
+def test_progress_reports_completed_steps_of_the_latest_turn(
+    client: TestClient, ray: FakeRay
+) -> None:
+    ray.ask("What is acme-portal.co?")
+    data = client.get("/api/progress").json()
+    assert data["turn_count"] == 1
+    assert data["steps"] == [
+        {"name": "find_messages", "subagent": "campaign-correlator"}
+    ]
+    assert data["done"] is True
+    assert data["error"] is False
+    assert data["started_at"]
+
+
+def test_progress_turn_count_separates_this_turn_from_the_last(
+    client: TestClient, ray: FakeRay
+) -> None:
+    # The page reads the count before it sends the ask. `ray.ask` starts the turn
+    # inside the threadpool worker, so without this the first poll of the second
+    # question would render the first question's tool calls as its progress.
+    ray.ask("first question")
+    baseline = client.get("/api/progress").json()["turn_count"]
+    ray.ask("second question")
+    assert client.get("/api/progress").json()["turn_count"] > baseline
+
+
+def test_progress_mid_turn_shows_the_steps_recorded_so_far(
+    client: TestClient, ray: FakeRay
+) -> None:
+    # Stands in for a poll that lands while the agent is still working: the turn
+    # exists and carries one call, and no answer is written yet.
+    turn = ray.session.start("a turn that is still running")
+    turn.record("find_messages", {"window": "7d"}, None)
+    data = client.get("/api/progress").json()
+    assert data["done"] is False
+    assert [step["name"] for step in data["steps"]] == ["find_messages"]
+
+
+def test_progress_never_touches_the_database(ray: FakeRay) -> None:
+    # The poll runs while the agent holds the connection in another thread, so
+    # this endpoint must read Turn attributes only — no query, no startup().
+    def fail(*args: object, **kwargs: object) -> None:
+        raise AssertionError("/api/progress must not query the database")
+
+    class ExplodingConnection:
+        execute = fail
+        cursor = fail
+
+    ray.conn = ExplodingConnection()  # type: ignore[assignment]
+    ray.startup = fail  # type: ignore[method-assign]
+    res = TestClient(create_app(ray)).get("/api/progress")
+    assert res.status_code == 200
+
+
+def test_progress_separates_a_failed_turn_from_the_grounding_tail(
+    client: TestClient, ray: FakeRay
+) -> None:
+    # `ask` writes a stand-in answer on the error path, so `done` goes true for a
+    # failed turn too. The page must not then say the citations are being checked.
+    turn = ray.session.start("a turn that failed")
+    turn.error = "RuntimeError: the model call failed"
+    turn.answer = "Ray could not complete this turn."
+    data = client.get("/api/progress").json()
+    assert data["done"] is True
+    assert data["error"] is True
+
+
+def test_progress_tolerates_a_bare_ray() -> None:
+    res = TestClient(create_app(object())).get("/api/progress")
+    assert res.status_code == 200
+    assert res.json()["turn_count"] == 0
+
+
+def test_index_polls_progress_and_reports_lost_contact() -> None:
+    html = INDEX_PATH.read_text(encoding="utf-8")
+    # The poll is what makes this a keepalive rather than an animation.
+    assert '"/api/progress"' in html
+    assert "readBaselineTurnCount()" in html
+    assert "baselineTurnCount = await readBaselineTurnCount();" in html
+    # A stalled poll is reported, and never as a failed turn.
+    assert "STALL_AFTER_FAILURES" in html
+    assert "has not answered the last" in html
+    # The clock and the poll both stop with the turn, on every path.
+    assert "function stopPendingClock(" in html
+    assert "else stopPendingClock();" in html
+    # Motion is decoration; the clock carries the same information without it.
+    assert "prefers-reduced-motion" in html
+
+
 # --- memory gate ----------------------------------------------------------
 
 
@@ -266,3 +373,28 @@ def test_transcript_contains_the_question(client: TestClient, ray: FakeRay) -> N
     res = client.get("/api/transcript")
     assert res.status_code == 200
     assert "Who received the acme-portal phishing link?" in res.text
+
+
+# --- the fake must not drift from the real thing -------------------------------
+#
+# Defects 4 and 5 of the first task were both interface-layer bugs that a fake hid.
+# The lesson recorded in NOTES.md is that a component test which fakes its
+# collaborator proves the component, not the seam. This test guards the seam: every
+# public attribute of the real Startup must exist on the fake, so a new field cannot
+# reach `/api/state` without the fake gaining it too.
+
+
+def test_the_fake_startup_exposes_everything_the_real_one_does() -> None:
+    from ray.agent import Startup
+
+    real = Startup(
+        model="m",
+        database="d",
+        message_count=1,
+        memory_count=0,
+        prompt_statuses=["x: hand-written"],
+        key_present=True,
+    )
+    expected = {name for name in dir(real) if not name.startswith("_")}
+    missing = expected - {name for name in dir(FakeStartup()) if not name.startswith("_")}
+    assert not missing, f"FakeStartup is missing: {sorted(missing)}"

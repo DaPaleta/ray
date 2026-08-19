@@ -43,7 +43,19 @@ def _banner(text: str) -> None:
     print(f"\n{'=' * 78}\n{text}\n{'=' * 78}")
 
 
-def _run_turn(ray: Ray, question: str, *, auto_confirm: bool = False) -> None:
+# A scenario may depend on a delegation firing. Delegation is model-driven, so it is
+# not guaranteed (NOTES.md limit 1), and a graded transcript must not lose its point
+# silently. A missed expectation prints loudly and sets the exit code.
+MISSED_EXPECTATIONS: list[str] = []
+
+
+def _run_turn(
+    ray: Ray,
+    question: str,
+    *,
+    auto_confirm: bool = False,
+    expect_specialist: str | None = None,
+) -> None:
     print(f"\n>>> ANALYST: {question}\n")
     turn = ray.ask(question)
     if turn.error:
@@ -65,6 +77,14 @@ def _run_turn(ray: Ray, question: str, *, auto_confirm: bool = False) -> None:
 
     for finding in turn.all_injection_findings:
         print(f"[injection] {finding.get('pattern')}: {finding.get('evidence', '')}")
+
+    if expect_specialist and expect_specialist not in (turn.subagents_used or []):
+        note = (
+            f"{expect_specialist} did NOT take part, and this scenario depends on it. "
+            "Delegation is model-driven; re-run the scenario."
+        )
+        print(f"\n!!! EXPECTATION MISSED: {note}")
+        MISSED_EXPECTATIONS.append(note)
 
     for proposal in turn.memory_proposals:
         print(f"\n[memory] proposed ({proposal['kind']}): {proposal['content']}")
@@ -106,10 +126,17 @@ def scenario_4(ray: Ray) -> str:
 
 
 def scenario_5(ray: Ray) -> str:
+    """Capability 5a. The recommendation is the incident-responder's, not the tool's.
+
+    `blast_radius` reports exposure facts and prescribes nothing (ADR-011), so this
+    transcript loses its point if the delegation does not fire. The expectation is
+    declared, so a missed one is loud rather than silent.
+    """
     _run_turn(
         ray,
         "Who else received a message with a link on login-verify.acme-portal.co, and "
         "which of those messages is still sitting in an inbox? What should I do?",
+        expect_specialist="incident-responder",
     )
     return "05-blast-radius-and-remediation"
 
@@ -159,6 +186,23 @@ def scenario_7(ray: Ray) -> str:
     return "07-watchlist-learned-from-analyst-overrides"
 
 
+def scenario_8(ray: Ray) -> str:
+    """The SOC workflow end to end: triage orders the queue, then response recommends.
+
+    ADR-011 added the triage role and the response role. This scenario is the one that
+    shows both, and it shows the handoff between them: the analyst asks a queue question
+    and a "what do I do" question in one turn, so `triage-officer` ranks and escalates
+    and `incident-responder` turns the exposure facts into an ordered recommendation.
+    """
+    _run_turn(
+        ray,
+        "Work my queue. What are the worst live messages in the last two weeks, in "
+        "order, and for the top one tell me exactly what to do about it.",
+        expect_specialist="triage-officer",
+    )
+    return "08-soc-workflow-triage-then-response"
+
+
 SCENARIOS = {
     "1": scenario_1,
     "2": scenario_2,
@@ -167,6 +211,7 @@ SCENARIOS = {
     "5": scenario_5,
     "6": scenario_6,
     "7": scenario_7,
+    "8": scenario_8,
 }
 
 TITLES = {
@@ -177,6 +222,7 @@ TITLES = {
     "5": "Capability 5a — blast radius and a remediation recommendation",
     "6": "Requirement 3 — a prompt injection reported, not obeyed",
     "7": "Capability 5b — a watch record learned from analyst overrides, then swept",
+    "8": "ADR-011 — the SOC workflow: triage orders the queue, response recommends",
 }
 
 
@@ -227,7 +273,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if scratch is not None:
         shutil.rmtree(scratch.parent, ignore_errors=True)
-    return 1 if failures else 0
+
+    if MISSED_EXPECTATIONS:
+        print(f"\n{len(MISSED_EXPECTATIONS)} scenario expectation(s) missed:")
+        for note in MISSED_EXPECTATIONS:
+            print(f"  - {note}")
+        print("  Re-run the affected scenario before committing the transcript.")
+
+    return 1 if (failures or MISSED_EXPECTATIONS) else 0
 
 
 if __name__ == "__main__":
