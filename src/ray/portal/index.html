@@ -4,67 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ray — Analyst Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Rethink+Sans:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f3f4f8;
+    --bg: #eceff4;
     --panel-bg: #ffffff;
-    --text: #1b1f27;
-    --muted: #5b6470;
-    --border: #d9dde3;
-    --accent: #2563eb;
-    --accent-contrast: #ffffff;
-    --chip-bg: #e0e7ff;
-    --chip-text: #3730a3;
-    --chip-border: #c7d2fe;
-    --danger-bg: #fee2e2;
-    --danger-text: #7f1d1d;
-    --danger-border: #fca5a5;
-    --warn-bg: #fef3c7;
-    --warn-text: #78350f;
-    --warn-border: #fcd34d;
-    --ok-bg: #dcfce7;
-    --ok-text: #14532d;
-    --ok-border: #86efac;
-    --code-bg: #f1f2f6;
-    --node-message: #2563eb;
-    --node-user: #16a34a;
-    --node-domain: #dc2626;
-    --node-campaign: #7c3aed;
+    --text: #002231;
+    --muted: #5a7280;
+    --border: #d2dbe5;
+    --accent: #99eeff;
+    --accent-contrast: #002231;
+    --chip-bg: #dff6fc;
+    --chip-text: #003d52;
+    --chip-border: #99eeff;
+    --danger-bg: #fde8d8;
+    --danger-text: #7a3010;
+    --danger-border: #eb8f49;
+    --warn-bg: #fff4e0;
+    --warn-text: #7a4a00;
+    --warn-border: #ffc375;
+    --ok-bg: #e0f9ef;
+    --ok-text: #0a4a2e;
+    --ok-border: #5ddba8;
+    --code-bg: #eceff4;
+    --node-message: #0099ff;
+    --node-user: #00a86b;
+    --node-domain: #eb4949;
+    --node-campaign: #6644cc;
     --node-sender: #0891b2;
-    --tab-active-bg: #2563eb;
-    --tab-active-text: #ffffff;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12151b;
-      --panel-bg: #1b1f27;
-      --text: #e7eaf0;
-      --muted: #9aa4b2;
-      --border: #2c323d;
-      --accent: #6d9bff;
-      --accent-contrast: #0b1220;
-      --chip-bg: #2a2f6b;
-      --chip-text: #c7d2fe;
-      --chip-border: #3d448f;
-      --danger-bg: #3a1414;
-      --danger-text: #fca5a5;
-      --danger-border: #7f1d1d;
-      --warn-bg: #3a2c0c;
-      --warn-text: #fcd34d;
-      --warn-border: #78350f;
-      --ok-bg: #0f2e1a;
-      --ok-text: #86efac;
-      --ok-border: #14532d;
-      --code-bg: #10131a;
-      --node-message: #6d9bff;
-      --node-user: #4ade80;
-      --node-domain: #f87171;
-      --node-campaign: #c084fc;
-      --node-sender: #22d3ee;
-      --tab-active-bg: #6d9bff;
-      --tab-active-text: #0b1220;
-    }
+    --tab-active-bg: #99eeff;
+    --tab-active-text: #002231;
   }
 
   * { box-sizing: border-box; }
@@ -73,7 +44,7 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     line-height: 1.5;
   }
 
@@ -85,6 +56,12 @@
     align-items: baseline;
     gap: 1rem;
     flex-wrap: wrap;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Rethink Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    scroll-margin-top: 1.5rem;
   }
 
   header h1 {
@@ -113,30 +90,32 @@
   #tab-bar {
     display: flex;
     gap: 0;
-    padding: 0 1rem;
+    padding: 0 1.25rem;
     background: var(--panel-bg);
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
   }
 
   .tab-btn {
-    padding: .65rem 1.1rem;
-    font-size: 0.88rem;
+    padding: .7rem 1rem;
+    font-size: 0.82rem;
     font-weight: 600;
+    letter-spacing: .01em;
     cursor: pointer;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-bottom: 2px solid transparent;
     background: none;
     color: var(--muted);
     white-space: nowrap;
     transition: color .15s, border-color .15s;
+    font-family: "DM Sans", sans-serif;
   }
 
   .tab-btn:hover { color: var(--text); }
 
   .tab-btn.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
+    color: var(--text);
+    border-bottom-color: var(--text);
   }
 
   /* ---- tab pages ---- */
@@ -180,9 +159,10 @@
   .panel {
     background: var(--panel-bg);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem;
+    border-radius: 12px;
+    padding: 1.25rem;
     min-width: 0;
+    box-shadow: 0 1px 4px rgba(0,34,49,.06), 0 4px 16px rgba(0,34,49,.04);
   }
 
   .panel > h2:first-child { margin-top: 0; font-size: 1.05rem; }
@@ -196,30 +176,44 @@
   .doc-content {
     background: var(--panel-bg);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
     min-width: 0;
     overflow-x: auto;
+    box-shadow: 0 1px 4px rgba(0,34,49,.06), 0 4px 16px rgba(0,34,49,.04);
   }
 
-  .doc-content h1 { font-size: 1.3rem; margin-top: 0; }
-  .doc-content h2 { font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
-  .doc-content h3 { font-size: 0.95rem; color: var(--muted); }
+  .doc-content h1 { font-size: 1.35rem; margin-top: 0; font-family: "Rethink Sans", sans-serif; }
+  .doc-content h2 {
+    font-size: 0.78rem;
+    font-family: "DM Sans", sans-serif;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    display: inline-block;
+    background: var(--text);
+    color: #fff;
+    border-radius: 6px;
+    padding: .2rem .7rem;
+    margin: 1.5rem 0 .75rem;
+    border: none;
+  }
+  .doc-content h3 { font-size: 0.95rem; color: var(--muted); font-family: "Rethink Sans", sans-serif; }
   .doc-content pre { background: var(--code-bg); border-radius: 6px; padding: .6rem .8rem; overflow-x: auto; font-size: 0.8rem; }
   .doc-content code { background: var(--code-bg); border-radius: 3px; padding: .1em .3em; font-size: 0.85em; }
-  .doc-content table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin: .75rem 0; }
-  .doc-content th, .doc-content td { border: 1px solid var(--border); padding: .35rem .5rem; text-align: left; vertical-align: top; }
-  .doc-content th { background: var(--bg); font-weight: 600; color: var(--muted); }
+  .doc-content table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin: .75rem 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .doc-content th, .doc-content td { border-bottom: 1px solid var(--border); padding: .5rem .75rem; text-align: left; vertical-align: top; }
+  .doc-content tr:last-child td { border-bottom: none; }
+  .doc-content th { background: var(--bg); font-weight: 700; font-size: 0.75rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
   .doc-content ul, .doc-content ol { padding-left: 1.5rem; }
   .doc-content li { margin-bottom: .25rem; }
-  .doc-content blockquote { border-left: 3px solid var(--accent); margin: .5rem 0; padding: .4rem .8rem; color: var(--muted); }
+  .doc-content blockquote { border-left: 3px solid #0099ff; margin: .5rem 0; padding: .4rem .8rem; color: var(--muted); }
   .doc-content hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 
   .doc-section-divider {
     border: none;
-    border-top: 2px solid var(--accent);
+    border-top: 1px solid var(--border);
     margin: 2rem 0 1.5rem;
-    opacity: .25;
   }
 
   .doc-file-label {
@@ -230,19 +224,95 @@
     display: block;
   }
 
-  /* ---- side chat panel ---- */
+  /* ---- sidebar column (chat + toc stacked) ---- */
 
-  .chat-panel {
-    background: var(--panel-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem;
+  .sidebar-col {
     display: flex;
     flex-direction: column;
     gap: .75rem;
     position: sticky;
     top: 1rem;
     max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .sidebar-col::-webkit-scrollbar { display: none; }
+
+  /* ---- toc panel ---- */
+
+  .toc-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: .85rem 1rem;
+    box-shadow: 0 1px 4px rgba(0,34,49,.06), 0 4px 16px rgba(0,34,49,.04);
+  }
+
+  .toc-panel:empty { display: none; }
+
+  .toc-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 .5rem;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .05rem;
+  }
+
+  .toc-item { display: block; }
+
+  .toc-link {
+    display: block;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--muted);
+    text-decoration: none;
+    padding: .25rem .4rem;
+    border-radius: 5px;
+    border-left: 2px solid transparent;
+    transition: color .12s, background .12s, border-color .12s;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .toc-link:hover {
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .toc-link.toc-active {
+    color: var(--text);
+    font-weight: 600;
+    border-left-color: var(--text);
+    background: var(--bg);
+  }
+
+  .toc-link[data-level="3"] {
+    padding-left: 1rem;
+    font-size: 0.76rem;
+  }
+
+  /* ---- side chat panel ---- */
+
+  .chat-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(0,34,49,.06), 0 4px 16px rgba(0,34,49,.04);
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    flex-shrink: 0;
   }
 
   .chat-panel h2 { margin: 0; font-size: 1rem; }
@@ -313,16 +383,19 @@
   }
 
   .chat-send {
-    background: var(--accent);
-    color: var(--accent-contrast);
-    border: 1px solid var(--accent);
+    background: var(--text);
+    color: #ffffff;
+    border: 1px solid var(--text);
     border-radius: 6px;
     padding: .45rem .8rem;
     font-weight: 600;
     cursor: pointer;
     font-size: 0.85rem;
     align-self: flex-end;
+    transition: opacity .15s;
   }
+
+  .chat-send:hover { opacity: .85; }
 
   .chat-send:disabled { opacity: .6; cursor: default; }
 
@@ -371,11 +444,14 @@
   }
 
   #ask-button {
-    background: var(--accent);
-    color: var(--accent-contrast);
-    border-color: var(--accent);
+    background: var(--text);
+    color: #ffffff;
+    border-color: var(--text);
     font-weight: 600;
+    transition: opacity .15s;
   }
+
+  #ask-button:hover { opacity: .85; }
 
   #ask-button:disabled { opacity: .6; cursor: default; }
 
@@ -462,9 +538,10 @@
 
   .call-card {
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: .55rem .7rem;
-    background: var(--bg);
+    background: var(--panel-bg);
+    box-shadow: 0 1px 3px rgba(0,34,49,.05);
   }
 
   .call-head {
@@ -513,13 +590,6 @@
   .badge-response { color: #be123c; background: #ffe4e6; }
   .badge-other { color: var(--muted); background: var(--panel-bg); }
 
-  @media (prefers-color-scheme: dark) {
-    .badge-triage { color: #fde047; background: #422006; }
-    .badge-auth { color: #fcd34d; background: #422006; }
-    .badge-campaign { color: #c4b5fd; background: #2e1065; }
-    .badge-verdict { color: #67e8f9; background: #083344; }
-    .badge-response { color: #fda4af; background: #4c0519; }
-  }
 
   .call-subagent {
     font-size: 0.78rem;
@@ -604,10 +674,11 @@
 
   .tx-card {
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: .75rem 1rem;
     margin-bottom: .75rem;
-    background: var(--bg);
+    background: var(--panel-bg);
+    box-shadow: 0 1px 3px rgba(0,34,49,.05);
   }
 
   .tx-card h3 { margin: 0 0 .3rem; font-size: 0.95rem; }
@@ -617,8 +688,8 @@
     font-weight: 700;
     border-radius: 999px;
     padding: 0 .55rem;
-    border: 1px solid var(--accent);
-    color: var(--accent);
+    border: 1px solid #0099ff;
+    color: #0099ff;
     margin-bottom: .4rem;
   }
   .tx-excerpt { font-size: 0.85rem; color: var(--muted); white-space: pre-wrap; }
@@ -658,7 +729,7 @@
     text-align: center;
   }
 
-  footer a { color: var(--accent); }
+  footer a { color: #0099ff; }
 </style>
 </head>
 <body>
@@ -681,15 +752,18 @@
       <div class="doc-content" id="overview-content">
         <p class="muted">Loading…</p>
       </div>
-      <aside class="chat-panel" id="chat-overview">
-        <h2>Ask about the overview</h2>
-        <div class="chat-disclaimer">Docs assistant — answers from repo files, no database citation check. See ADR-015.</div>
-        <div class="chat-log" id="chat-log-overview"></div>
-        <div class="chat-input-row">
-          <textarea id="chat-input-overview" rows="2" placeholder="e.g. Why are typed tools better than raw SQL?"></textarea>
-          <button class="chat-send" data-chat="overview">Ask</button>
-        </div>
-      </aside>
+      <div class="sidebar-col">
+        <aside class="chat-panel" id="chat-overview">
+          <h2>Ask about the overview</h2>
+          <div class="chat-disclaimer">Docs assistant — answers from repo files, no database citation check. See ADR-015.</div>
+          <div class="chat-log" id="chat-log-overview"></div>
+          <div class="chat-input-row">
+            <textarea id="chat-input-overview" rows="2" placeholder="e.g. Why are typed tools better than raw SQL?"></textarea>
+            <button class="chat-send" data-chat="overview">Ask</button>
+          </div>
+        </aside>
+        <nav class="toc-panel" id="toc-overview" aria-label="Table of contents"></nav>
+      </div>
     </div>
   </div>
 
@@ -699,15 +773,18 @@
       <div id="execution-content">
         <p class="muted" style="padding:1rem">Loading transcripts…</p>
       </div>
-      <aside class="chat-panel" id="chat-execution">
-        <h2>Ask about execution</h2>
-        <div class="chat-disclaimer">Docs assistant — answers from transcript files, no database citation check.</div>
-        <div class="chat-log" id="chat-log-execution"></div>
-        <div class="chat-input-row">
-          <textarea id="chat-input-execution" rows="2" placeholder="e.g. How did Ray handle the prompt-injection attempt?"></textarea>
-          <button class="chat-send" data-chat="execution">Ask</button>
-        </div>
-      </aside>
+      <div class="sidebar-col">
+        <aside class="chat-panel" id="chat-execution">
+          <h2>Ask about execution</h2>
+          <div class="chat-disclaimer">Docs assistant — answers from transcript files, no database citation check.</div>
+          <div class="chat-log" id="chat-log-execution"></div>
+          <div class="chat-input-row">
+            <textarea id="chat-input-execution" rows="2" placeholder="e.g. How did Ray handle the prompt-injection attempt?"></textarea>
+            <button class="chat-send" data-chat="execution">Ask</button>
+          </div>
+        </aside>
+        <nav class="toc-panel" id="toc-execution" aria-label="Table of contents"></nav>
+      </div>
     </div>
   </div>
 
@@ -717,15 +794,18 @@
       <div class="doc-content" id="decisions-content">
         <p class="muted">Loading…</p>
       </div>
-      <aside class="chat-panel" id="chat-decisions">
-        <h2>Ask about decisions</h2>
-        <div class="chat-disclaimer">Docs assistant — answers from conversation logs and ADRs, no database citation check.</div>
-        <div class="chat-log" id="chat-log-decisions"></div>
-        <div class="chat-input-row">
-          <textarea id="chat-input-decisions" rows="2" placeholder="e.g. Why was memory confirmation needed?"></textarea>
-          <button class="chat-send" data-chat="decisions">Ask</button>
-        </div>
-      </aside>
+      <div class="sidebar-col">
+        <aside class="chat-panel" id="chat-decisions">
+          <h2>Ask about decisions</h2>
+          <div class="chat-disclaimer">Docs assistant — answers from conversation logs and ADRs, no database citation check.</div>
+          <div class="chat-log" id="chat-log-decisions"></div>
+          <div class="chat-input-row">
+            <textarea id="chat-input-decisions" rows="2" placeholder="e.g. Why was memory confirmation needed?"></textarea>
+            <button class="chat-send" data-chat="decisions">Ask</button>
+          </div>
+        </aside>
+        <nav class="toc-panel" id="toc-decisions" aria-label="Table of contents"></nav>
+      </div>
     </div>
   </div>
 
@@ -735,15 +815,18 @@
       <div class="doc-content" id="tech-content">
         <p class="muted">Loading…</p>
       </div>
-      <aside class="chat-panel" id="chat-tech">
-        <h2>Ask about the tech</h2>
-        <div class="chat-disclaimer">Docs assistant — answers from NOTES.md, AGENTS.md, and ADRs, no database citation check.</div>
-        <div class="chat-log" id="chat-log-tech"></div>
-        <div class="chat-input-row">
-          <textarea id="chat-input-tech" rows="2" placeholder="e.g. Why is DSPy run offline and not at request time?"></textarea>
-          <button class="chat-send" data-chat="tech">Ask</button>
-        </div>
-      </aside>
+      <div class="sidebar-col">
+        <aside class="chat-panel" id="chat-tech">
+          <h2>Ask about the tech</h2>
+          <div class="chat-disclaimer">Docs assistant — answers from NOTES.md, AGENTS.md, and ADRs, no database citation check.</div>
+          <div class="chat-log" id="chat-log-tech"></div>
+          <div class="chat-input-row">
+            <textarea id="chat-input-tech" rows="2" placeholder="e.g. Why is DSPy run offline and not at request time?"></textarea>
+            <button class="chat-send" data-chat="tech">Ask</button>
+          </div>
+        </aside>
+        <nav class="toc-panel" id="toc-tech" aria-label="Table of contents"></nav>
+      </div>
     </div>
   </div>
 
@@ -1017,9 +1100,68 @@
       var res = await fetch("/api/docs/" + key, { cache: "no-store" });
       var text = await res.text();
       buildFn(container, text);
+      buildToc(key, container);
     } catch (err) {
       if (container) container.innerHTML = "<p class='muted'>Could not load docs: " + escapeHtml(String(err)) + "</p>";
     }
+  }
+
+  // --- table of contents ------------------------------------------------------
+
+  function buildToc(tabKey, contentEl) {
+    var tocEl = document.getElementById("toc-" + tabKey);
+    if (!tocEl) return;
+
+    // Collect headings; assign stable anchor ids
+    var headings = Array.from(contentEl.querySelectorAll("h1, h2, h3"));
+    if (headings.length < 2) { tocEl.innerHTML = ""; return; }
+
+    headings.forEach(function(h, idx) {
+      if (!h.id) {
+        var slug = (h.textContent || "").toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").slice(0, 60);
+        h.id = "toc-" + tabKey + "-" + idx + "-" + slug;
+      }
+    });
+
+    var html = '<p class="toc-title">On this page</p><ul class="toc-list">';
+    headings.forEach(function(h) {
+      var level = parseInt(h.tagName[1], 10);
+      if (level > 3) return;
+      var label = h.textContent.trim();
+      html += '<li class="toc-item"><a class="toc-link" data-level="' + level +
+        '" href="#' + escapeHtml(h.id) + '">' + escapeHtml(label) + '</a></li>';
+    });
+    html += "</ul>";
+    tocEl.innerHTML = html;
+
+    // Highlight on scroll using IntersectionObserver
+    if ("IntersectionObserver" in window) {
+      var links = tocEl.querySelectorAll(".toc-link");
+      var idToLink = {};
+      links.forEach(function(a) {
+        var id = a.getAttribute("href").slice(1);
+        idToLink[id] = a;
+      });
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          var link = idToLink[entry.target.id];
+          if (link) link.classList.toggle("toc-active", entry.isIntersecting);
+        });
+      }, { rootMargin: "0px 0px -70% 0px", threshold: 0 });
+
+      headings.forEach(function(h) { if (idToLink[h.id]) observer.observe(h); });
+    }
+
+    // Smooth scroll
+    tocEl.addEventListener("click", function(e) {
+      var link = e.target.closest(".toc-link");
+      if (!link) return;
+      e.preventDefault();
+      var target = document.getElementById(link.getAttribute("href").slice(1));
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   // Splits the concatenated doc text on the "# --- path ---" markers
