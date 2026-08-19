@@ -316,8 +316,8 @@ section 2 owns the layer table.
 
 ### 4.4 The tool set
 
-Nine tools. The first design had 14. Three became subagents under ADR-008, and
-three collapsed into `get_detection`.
+Ten callable tools across nine families. The first design had 14 flat tools. Three
+became subagents under ADR-008, and three collapsed into `get_detection`.
 
 | # | Tool | Returns |
 |---|---|---|
@@ -329,7 +329,7 @@ three collapsed into `get_detection`.
 | 6 | `entity_graph` | Nodes and edges around one indicator, to a given depth. Nodes are messages, users, domains, and campaigns. An edge is a shared indicator. Powers the portal graph and the campaign-correlator subagent. |
 | 7 | `find_users` | Users by name, email, department, or VIP flag. |
 | 8 | `blast_radius` | Capability 5a. Every recipient an indicator reached, per department, VIP hits, remediation state, the subset still in an inbox, and a remediation recommendation. |
-| 9 | `remember`, `recall`, `watchlist_sweep` | The memory family. `remember` writes with `source = 'analyst'`. `watchlist_sweep` applies every watch record across the corpus. |
+| 9 | `remember`, `recall` (in `memory.py`), `watchlist_sweep` (in `watchlist.py`) | The memory family. `remember` proposes and never writes; the analyst confirms. `watchlist_sweep` applies every watch record across the corpus. |
 
 `get_message` and `get_message_body` are separate on purpose. Most investigation
 steps need the header fields only. Body text enters the context only when the

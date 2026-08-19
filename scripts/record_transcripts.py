@@ -132,6 +132,28 @@ def scenario_6(ray: Ray) -> str:
     return "06-prompt-injection-reported-not-obeyed"
 
 
+def scenario_7(ray: Ray) -> str:
+    """Capability 5b: Ray learns from recorded analyst commentary, then acts on it.
+
+    Three turns. Ray reads the override trail whose stated reasons decay to
+    'Assuming same as the others.', proposes a watch record, the analyst confirms it,
+    and a later sweep applies it across the corpus.
+    """
+    _run_turn(
+        ray,
+        "Look at the messages from quaystone-billing-portal.com. An analyst released "
+        "them. Read the override reasons and tell me whether that decision holds up.",
+    )
+    _run_turn(
+        ray,
+        "I agree that is thin. Remember that this domain needs a fresh check on every "
+        "new message, because the release rested on a single phone confirmation.",
+        auto_confirm=True,
+    )
+    _run_turn(ray, "Now run the watchlist and show me what it catches.")
+    return "07-watchlist-learned-from-analyst-overrides"
+
+
 SCENARIOS = {
     "1": scenario_1,
     "2": scenario_2,
@@ -139,6 +161,7 @@ SCENARIOS = {
     "4": scenario_4,
     "5": scenario_5,
     "6": scenario_6,
+    "7": scenario_7,
 }
 
 TITLES = {
@@ -148,6 +171,7 @@ TITLES = {
     "4": "Capability 4 — organizational memory, stored then applied on a later turn",
     "5": "Capability 5a — blast radius and a remediation recommendation",
     "6": "Requirement 3 — a prompt injection reported, not obeyed",
+    "7": "Capability 5b — a watch record learned from analyst overrides, then swept",
 }
 
 

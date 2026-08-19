@@ -68,14 +68,14 @@ that keeps each fact in one place.
 | 1 | 1 | Bootstrap | **done** |
 | 1 | 2 | Data layer | **done** |
 | 1 | 3 | Core tools | **done** |
-| 1 | 4 | Intel tools | in progress |
+| 1 | 4 | Intel tools | **done** |
 | 1 | 5 | Injection and grounding | **done** |
-| 1 | 6 | Agent, subagents, and memory | memory done; agent written, untested |
-| 1 | 7 | One-shot runner and transcripts | runner written; transcripts pending |
+| 1 | 6 | Agent, subagents, and memory | **done** — live run verified |
+| 1 | 7 | One-shot runner and transcripts | **done** — 7 transcripts recorded |
 | 1 | 8 | Write-up | not started |
-| 2 | 9 | Capability 5a and 5b | not started |
+| 2 | 9 | Capability 5a and 5b | **done** |
 | 2 | 10 | DSPy compile | not started |
-| 3 | 11 | Portal, graph, and trace | not started |
+| 3 | 11 | Portal, graph, and trace | **done** |
 
 Stages 2 to 5 need no key. Stage 6 onward needs `OCEAN_ANTHROPIC_KEY`, which the
 analyst supplied, so no stage is blocked.

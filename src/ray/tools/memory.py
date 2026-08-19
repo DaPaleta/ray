@@ -27,8 +27,18 @@ from .. import db, injection, schemas
 
 # The kinds of durable fact Ray stores. `watch` drives the sweep (ADR-010).
 KINDS: dict[str, str] = {
-    "policy": "A rule about how the organization behaves, such as who never emails a request.",
-    "watch": "An indicator to sweep for on later turns.",
+    "watch": (
+        "An indicator — a domain, a sender address, or a subject — that Ray must look "
+        "for on later turns. Choose this whenever the analyst wants ongoing vigilance "
+        "about something specific: 'keep an eye on', 'flag any new message from', "
+        "'needs a fresh check every time'. Only a watch record is applied by "
+        "watchlist_sweep, so a rule stored as any other kind is never swept."
+    ),
+    "policy": (
+        "A general rule about how the organization behaves, naming no single indicator "
+        "to sweep for — for example that a named executive never emails wire requests. "
+        "Choose this only when there is no indicator to watch."
+    ),
     "context": "A durable fact about the organization or its people.",
     "vendor": "A judgement about an external party.",
 }

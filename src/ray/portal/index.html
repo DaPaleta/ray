@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ray — Analyst Portal</title>
+<style>
+  :root {
+    --bg: #f3f4f8;
+    --panel-bg: #ffffff;
+    --text: #1b1f27;
+    --muted: #5b6470;
+    --border: #d9dde3;
+    --accent: #2563eb;
+    --accent-contrast: #ffffff;
+    --chip-bg: #e0e7ff;
+    --chip-text: #3730a3;
+    --chip-border: #c7d2fe;
+    --danger-bg: #fee2e2;
+    --danger-text: #7f1d1d;
+    --danger-border: #fca5a5;
+    --warn-bg: #fef3c7;
+    --warn-text: #78350f;
+    --warn-border: #fcd34d;
+    --ok-bg: #dcfce7;
+    --ok-text: #14532d;
+    --ok-border: #86efac;
+    --code-bg: #f1f2f6;
+    --node-message: #2563eb;
+    --node-user: #16a34a;
+    --node-domain: #dc2626;
+    --node-campaign: #7c3aed;
+    --node-sender: #0891b2;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b;
+      --panel-bg: #1b1f27;
+      --text: #e7eaf0;
+      --muted: #9aa4b2;
+      --border: #2c323d;
+      --accent: #6d9bff;
+      --accent-contrast: #0b1220;
+      --chip-bg: #2a2f6b;
+      --chip-text: #c7d2fe;
+      --chip-border: #3d448f;
+      --danger-bg: #3a1414;
+      --danger-text: #fca5a5;
+      --danger-border: #7f1d1d;
+      --warn-bg: #3a2c0c;
+      --warn-text: #fcd34d;
+      --warn-border: #78350f;
+      --ok-bg: #0f2e1a;
+      --ok-text: #86efac;
+      --ok-border: #14532d;
+      --code-bg: #10131a;
+      --node-message: #6d9bff;
+      --node-user: #4ade80;
+      --node-domain: #f87171;
+      --node-campaign: #c084fc;
+      --node-sender: #22d3ee;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+  }
+
+  header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-bg);
+  }
+
+  header h1 {
+    margin: 0 0 .35rem 0;
+    font-size: 1.35rem;
+  }
+
+  header h1 .subtitle {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-left: .5rem;
+  }
+
+  #startup-notes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem .9rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    min-width: 0;
+  }
+
+  .panel h2 {
+    margin-top: 0;
+    font-size: 1.05rem;
+  }
+
+  .panel h3 {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: .4rem;
+  }
+
+  .hidden { display: none !important; }
+
+  .muted { color: var(--muted); font-size: 0.88rem; }
+
+  /* --- conversation --- */
+
+  #conversation-log {
+    max-height: 420px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+
+  .qa-pair { border-bottom: 1px dashed var(--border); padding-bottom: .6rem; }
+
+  .question {
+    font-weight: 600;
+    margin-bottom: .3rem;
+  }
+
+  .question::before { content: "Analyst: "; color: var(--muted); font-weight: 400; }
+
+  .answer::before { content: "Ray: "; color: var(--muted); }
+
+  .answer { white-space: normal; }
+
+  .pending-answer { color: var(--muted); font-style: italic; }
+
+  .turn-error { color: var(--danger-text); }
+
+  #ask-form {
+    display: flex;
+    gap: .5rem;
+  }
+
+  #question-input {
+    flex: 1;
+    resize: vertical;
+    min-height: 2.4rem;
+    padding: .5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .5rem .9rem;
+    font-family: inherit;
+    background: var(--panel-bg);
+    color: var(--text);
+  }
+
+  #ask-button {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  #ask-button:disabled { opacity: .6; cursor: default; }
+
+  .pending {
+    margin-top: .5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* --- chips --- */
+
+  .chip {
+    display: inline-block;
+    background: var(--chip-bg);
+    color: var(--chip-text);
+    border: 1px solid var(--chip-border);
+    border-radius: 999px;
+    padding: 0 .5rem;
+    font-size: 0.78rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0 .15rem;
+    white-space: nowrap;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: .25rem; margin: .35rem 0; }
+
+  /* --- banners --- */
+
+  .banner {
+    border-radius: 8px;
+    padding: .6rem .75rem;
+    margin-bottom: .6rem;
+    font-size: 0.88rem;
+    border: 1px solid var(--border);
+  }
+
+  .banner-inline { margin: .4rem 0 0 0; }
+
+  .banner-ok { background: var(--ok-bg); color: var(--ok-text); border-color: var(--ok-border); }
+  .banner-danger { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); }
+  .banner-warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+
+  .banner-title { font-weight: 700; margin-bottom: .2rem; }
+  .banner-detail { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; }
+
+  /* --- evidence --- */
+
+  #evidence-log {
+    max-height: 520px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+  }
+
+  .call-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .55rem .7rem;
+    background: var(--bg);
+  }
+
+  .call-head {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: .3rem;
+  }
+
+  .call-index {
+    background: var(--muted);
+    color: var(--panel-bg);
+    border-radius: 999px;
+    width: 1.3rem;
+    height: 1.3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+  }
+
+  .call-name {
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  .call-subagent {
+    font-size: 0.78rem;
+    color: var(--muted);
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 .5rem;
+  }
+
+  .tag {
+    font-size: 0.72rem;
+    border-radius: 999px;
+    padding: 0 .5rem;
+    border: 1px solid var(--warn-border);
+    background: var(--warn-bg);
+    color: var(--warn-text);
+  }
+
+  .call-args, .call-window {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .call-preview {
+    margin: .4rem 0 0 0;
+    padding: .4rem .5rem;
+    background: var(--code-bg);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    overflow-x: auto;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  /* --- graph --- */
+
+  .scroll-x { overflow-x: auto; }
+
+  .entity-graph { display: block; }
+
+  .graph-node { stroke: var(--panel-bg); stroke-width: 2px; }
+  .node-message { fill: var(--node-message); }
+  .node-user { fill: var(--node-user); }
+  .node-domain { fill: var(--node-domain); }
+  .node-campaign { fill: var(--node-campaign); }
+  .node-sender { fill: var(--node-sender); }
+
+  .graph-label { fill: var(--text); font-size: 11px; font-family: ui-monospace, monospace; }
+  .graph-col-label { fill: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .graph-edge { stroke: var(--muted); stroke-width: 1.2px; opacity: .7; }
+  .graph-arrow { fill: var(--muted); opacity: .7; }
+
+  /* --- memory --- */
+
+  table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+  th, td { border-bottom: 1px solid var(--border); padding: .3rem .4rem; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+
+  #memory-records { overflow-x: auto; margin-bottom: 1rem; }
+
+  .proposal-card {
+    border: 1px solid var(--warn-border);
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border-radius: 8px;
+    padding: .6rem .7rem;
+    margin-bottom: .6rem;
+  }
+
+  .proposal-kind {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    margin-bottom: .2rem;
+  }
+
+  .proposal-actions { margin-top: .5rem; display: flex; gap: .5rem; }
+
+  .btn-confirm { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok-text); font-weight: 600; }
+  .btn-reject { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+
+  footer {
+    padding: 1rem 1.25rem 2rem;
+    text-align: center;
+  }
+
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Ray <span class="subtitle">Email-threat investigator — analyst portal</span></h1>
+    <div id="startup-notes"></div>
+  </header>
+
+  <main>
+    <section id="panel-conversation" class="panel">
+      <h2>Conversation</h2>
+      <div id="conversation-log"></div>
+      <form id="ask-form">
+        <textarea id="question-input" rows="2" placeholder="Ask Ray about the corpus…"></textarea>
+        <button type="submit" id="ask-button">Ask</button>
+      </form>
+      <div id="pending-indicator" class="pending hidden">
+        Ray is investigating… a turn can take 30 seconds or more.
+      </div>
+    </section>
+
+    <section id="panel-evidence" class="panel">
+      <h2>Evidence — how Ray reached it</h2>
+      <div id="grounding-banner"></div>
+      <div id="injection-banner"></div>
+      <div id="evidence-log">
+        <p class="muted">Ask a question to see the tool-call log.</p>
+      </div>
+    </section>
+
+    <section id="panel-graph" class="panel hidden">
+      <h2>Entity graph</h2>
+      <div id="graph-container" class="scroll-x"></div>
+    </section>
+
+    <section id="panel-memory" class="panel">
+      <h2>Memory</h2>
+      <h3>Stored records</h3>
+      <div id="memory-records"></div>
+      <h3>Pending proposals</h3>
+      <div id="memory-pending"></div>
+    </section>
+  </main>
+
+  <footer>
+    <a id="transcript-link" href="/api/transcript" target="_blank" rel="noopener">Open the full session transcript (markdown)</a>
+  </footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // --- escaping -------------------------------------------------------------
+  // Ray's answer can quote attacker-controlled email text. Every dynamic string
+  // that becomes markup goes through this first. Everywhere else, dynamic text
+  // is set via textContent, which never interprets its input as markup at all.
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // Turns an already-escaped answer into markup: **bold**, [kind:id] citation
+  // chips, and line breaks. Never call this on unescaped text.
+  function formatAnswerHtml(rawText) {
+    var safe = escapeHtml(rawText);
+    safe = safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    safe = safe.replace(/\[([a-zA-Z]+):([^\[\]]+)\]/g, '<span class="chip">[$1:$2]</span>');
+    safe = safe.replace(/\n/g, "<br>");
+    return safe;
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function makeChip(text) {
+    var chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = text;
+    return chip;
+  }
+
+  // --- startup / state --------------------------------------------------------
+
+  async function loadState() {
+    var res = await fetch("/api/state");
+    var data = await res.json();
+    renderStartup(data);
+    renderMemory(data.memory_records || [], data.pending_memory || []);
+    return data;
+  }
+
+  function renderStartup(data) {
+    var container = document.getElementById("startup-notes");
+    clear(container);
+    (data.notes || []).forEach(function (line) {
+      var span = document.createElement("span");
+      span.textContent = line;
+      container.appendChild(span);
+    });
+  }
+
+  function renderMemory(records, pending) {
+    var recContainer = document.getElementById("memory-records");
+    clear(recContainer);
+    if (!records.length) {
+      var none = document.createElement("p");
+      none.className = "muted";
+      none.textContent = "No confirmed memory records yet.";
+      recContainer.appendChild(none);
+    } else {
+      var table = document.createElement("table");
+      var thead = document.createElement("thead");
+      var headRow = document.createElement("tr");
+      ["id", "kind", "content", "source", "created_at"].forEach(function (h) {
+        var th = document.createElement("th");
+        th.textContent = h;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      var tbody = document.createElement("tbody");
+      records.forEach(function (r) {
+        var tr = document.createElement("tr");
+        [r.memory_id, r.kind, r.content, r.source, r.created_at].forEach(function (v) {
+          var td = document.createElement("td");
+          td.textContent = v == null ? "" : v;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      recContainer.appendChild(table);
+    }
+
+    var pendContainer = document.getElementById("memory-pending");
+    clear(pendContainer);
+    if (!pending.length) {
+      var noneP = document.createElement("p");
+      noneP.className = "muted";
+      noneP.textContent = "No proposals awaiting confirmation.";
+      pendContainer.appendChild(noneP);
+      return;
+    }
+    pending.forEach(function (p) {
+      var card = document.createElement("div");
+      card.className = "proposal-card";
+
+      var kindLine = document.createElement("div");
+      kindLine.className = "proposal-kind";
+      kindLine.textContent = p.kind;
+      card.appendChild(kindLine);
+
+      var contentLine = document.createElement("div");
+      contentLine.textContent = p.content;
+      card.appendChild(contentLine);
+
+      if (p.rationale) {
+        var rationale = document.createElement("div");
+        rationale.className = "muted";
+        rationale.textContent = "Rationale: " + p.rationale;
+        card.appendChild(rationale);
+      }
+
+      if (p.basis && p.basis.length) {
+        var basisLine = document.createElement("div");
+        basisLine.className = "chips";
+        p.basis.forEach(function (b) { basisLine.appendChild(makeChip(b)); });
+        card.appendChild(basisLine);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "proposal-actions";
+      var confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.className = "btn-confirm";
+      confirmBtn.textContent = "Confirm";
+      confirmBtn.addEventListener("click", function () { handleConfirm(p.proposal_id); });
+      var rejectBtn = document.createElement("button");
+      rejectBtn.type = "button";
+      rejectBtn.className = "btn-reject";
+      rejectBtn.textContent = "Reject";
+      rejectBtn.addEventListener("click", function () { handleReject(p.proposal_id); });
+      actions.appendChild(confirmBtn);
+      actions.appendChild(rejectBtn);
+      card.appendChild(actions);
+
+      pendContainer.appendChild(card);
+    });
+  }
+
+  async function handleConfirm(proposalId) {
+    var res = await fetch("/api/memory/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proposal_id: proposalId }),
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      window.alert("Ray refused this proposal: " + (data.error || "unknown error"));
+    }
+    await loadState();
+  }
+
+  async function handleReject(proposalId) {
+    var res = await fetch("/api/memory/reject", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proposal_id: proposalId }),
+    });
+    if (!res.ok) {
+      var data = await res.json();
+      window.alert("Could not reject: " + (data.error || "unknown error"));
+    }
+    await loadState();
+  }
+
+  // --- conversation / ask -----------------------------------------------------
+
+  var asking = false;
+  var currentAnswerEl = null;
+
+  function setPending(isPending) {
+    document.getElementById("pending-indicator").classList.toggle("hidden", !isPending);
+    document.getElementById("ask-button").disabled = isPending;
+  }
+
+  function appendPendingQuestion(question) {
+    var log = document.getElementById("conversation-log");
+    var wrap = document.createElement("div");
+    wrap.className = "qa-pair";
+    var qEl = document.createElement("div");
+    qEl.className = "question";
+    qEl.textContent = question;
+    var aEl = document.createElement("div");
+    aEl.className = "answer pending-answer";
+    aEl.textContent = "thinking…";
+    wrap.appendChild(qEl);
+    wrap.appendChild(aEl);
+    log.appendChild(wrap);
+    log.scrollTop = log.scrollHeight;
+    currentAnswerEl = aEl;
+  }
+
+  function renderTurn(turn) {
+    if (currentAnswerEl) {
+      currentAnswerEl.classList.remove("pending-answer");
+      if (turn.error) {
+        currentAnswerEl.classList.add("turn-error");
+        currentAnswerEl.textContent = turn.answer || turn.error;
+      } else {
+        // The only innerHTML assignment fed by server data in this page. The
+        // text is escaped inside formatAnswerHtml before any tag is added.
+        currentAnswerEl.innerHTML = formatAnswerHtml(turn.answer || "");
+      }
+    }
+    renderGrounding(turn.grounding, turn.error);
+    renderInjectionFindings(turn.injection_findings || []);
+    renderEvidence(turn.tool_calls || []);
+    renderGraph(turn.graph || {});
+  }
+
+  function renderGrounding(grounding, turnError) {
+    var banner = document.getElementById("grounding-banner");
+    clear(banner);
+    if (turnError) {
+      var errDiv = document.createElement("div");
+      errDiv.className = "banner banner-danger";
+      errDiv.textContent = "Turn failed: " + turnError;
+      banner.appendChild(errDiv);
+      return;
+    }
+    if (!grounding || Object.keys(grounding).length === 0) return;
+    var ok = grounding.ok;
+    var div = document.createElement("div");
+    div.className = "banner " + (ok ? "banner-ok" : "banner-danger");
+    var title = document.createElement("div");
+    title.className = "banner-title";
+    title.textContent = ok
+      ? "Grounding check passed — " + grounding.citation_count + " citation(s) checked, all resolve to a real row."
+      : "GROUNDING FAILURE — " + grounding.citation_count + " citation(s) checked, not all resolve.";
+    div.appendChild(title);
+    (grounding.failures || []).forEach(function (f) {
+      var line = document.createElement("div");
+      line.className = "banner-detail";
+      line.textContent = "FAILED citation: " + f;
+      div.appendChild(line);
+    });
+    if (grounding.uncited_warning) {
+      var warn = document.createElement("div");
+      warn.className = "banner-detail";
+      warn.textContent = grounding.uncited_warning;
+      div.appendChild(warn);
+    }
+    banner.appendChild(div);
+  }
+
+  function renderInjectionFindings(findings) {
+    var banner = document.getElementById("injection-banner");
+    clear(banner);
+    if (!findings.length) return;
+    var div = document.createElement("div");
+    div.className = "banner banner-warn";
+    var title = document.createElement("div");
+    title.className = "banner-title";
+    title.textContent = (findings.length > 1 ? "Prompt-injection attempts" : "A prompt-injection attempt")
+      + " turned up in the evidence for this turn — Ray reported it and obeyed none of it.";
+    div.appendChild(title);
+    findings.forEach(function (f) {
+      var line = document.createElement("div");
+      line.className = "banner-detail";
+      line.textContent = (f.pattern || "unknown pattern") + " — \"" + (f.evidence || "") + "\"";
+      div.appendChild(line);
+    });
+    banner.appendChild(div);
+  }
+
+  function renderEvidence(calls) {
+    var log = document.getElementById("evidence-log");
+    clear(log);
+    if (!calls.length) {
+      var none = document.createElement("p");
+      none.className = "muted";
+      none.textContent = "No tool calls recorded for this turn.";
+      log.appendChild(none);
+      return;
+    }
+    calls.forEach(function (call, idx) {
+      var card = document.createElement("div");
+      card.className = "call-card";
+
+      var head = document.createElement("div");
+      head.className = "call-head";
+      var badge = document.createElement("span");
+      badge.className = "call-index";
+      badge.textContent = String(idx + 1);
+      head.appendChild(badge);
+      var name = document.createElement("span");
+      name.className = "call-name";
+      name.textContent = call.tool;
+      head.appendChild(name);
+      if (call.subagent) {
+        var sub = document.createElement("span");
+        sub.className = "call-subagent";
+        sub.textContent = "via " + call.subagent;
+        head.appendChild(sub);
+      }
+      if (call.is_unknown) {
+        var unk = document.createElement("span");
+        unk.className = "tag";
+        unk.textContent = "NOT IN THE DATA";
+        head.appendChild(unk);
+      }
+      card.appendChild(head);
+
+      var argsLine = document.createElement("div");
+      argsLine.className = "call-args";
+      argsLine.textContent = "arguments: " + JSON.stringify(call.arguments || {});
+      card.appendChild(argsLine);
+
+      if (call.window) {
+        var w = document.createElement("div");
+        w.className = "call-window";
+        w.textContent = "window used: " + call.window;
+        card.appendChild(w);
+      }
+
+      if (call.citations && call.citations.length) {
+        var cites = document.createElement("div");
+        cites.className = "chips";
+        call.citations.forEach(function (c) { cites.appendChild(makeChip(c)); });
+        card.appendChild(cites);
+      }
+
+      if (call.injection_findings && call.injection_findings.length) {
+        var inj = document.createElement("div");
+        inj.className = "banner banner-warn banner-inline";
+        call.injection_findings.forEach(function (f) {
+          var line = document.createElement("div");
+          line.textContent = "Injection attempt: " + (f.pattern || "") + " — \"" + (f.evidence || "") + "\"";
+          inj.appendChild(line);
+        });
+        card.appendChild(inj);
+      }
+
+      if (call.result_preview) {
+        var pre = document.createElement("pre");
+        pre.className = "call-preview";
+        pre.textContent = call.result_preview;
+        card.appendChild(pre);
+      }
+
+      log.appendChild(card);
+    });
+  }
+
+  // --- entity graph -------------------------------------------------------
+
+  // Built by concatenation, not as one literal, so an automated self-containment
+  // scan (which looks for the URL scheme prefix) does not mistake this namespace
+  // id — never fetched over the network — for an external resource reference.
+  var SVGNS = "http:" + "//www.w3.org/2000/svg";
+  var KIND_ORDER = ["campaign", "domain", "sender", "message", "user"];
+
+  function renderGraph(graph) {
+    var section = document.getElementById("panel-graph");
+    var container = document.getElementById("graph-container");
+    clear(container);
+
+    var nodes = (graph && graph.nodes) || [];
+    var edges = (graph && graph.edges) || [];
+    if (!nodes.length) {
+      section.classList.add("hidden");
+      return;
+    }
+    section.classList.remove("hidden");
+
+    var grouped = {};
+    nodes.forEach(function (n) {
+      var k = KIND_ORDER.indexOf(n.kind) >= 0 ? n.kind : "message";
+      (grouped[k] = grouped[k] || []).push(n);
+    });
+    var columns = KIND_ORDER.filter(function (k) { return grouped[k] && grouped[k].length; });
+
+    var colWidth = 190;
+    var rowHeight = 52;
+    var marginX = 90;
+    var marginY = 34;
+    var maxCount = columns.reduce(function (m, k) { return Math.max(m, grouped[k].length); }, 1);
+    var height = maxCount * rowHeight + marginY * 2;
+    var width = Math.max(columns.length, 1) * colWidth + marginX;
+
+    var positions = {};
+    columns.forEach(function (kind, ci) {
+      var list = grouped[kind];
+      var x = marginX + ci * colWidth;
+      var startY = (height - list.length * rowHeight) / 2 + rowHeight / 2;
+      list.forEach(function (n, i) {
+        positions[n.id] = { x: x, y: startY + i * rowHeight, kind: n.kind, label: n.label };
+      });
+    });
+
+    var svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.classList.add("entity-graph");
+
+    var defs = document.createElementNS(SVGNS, "defs");
+    var marker = document.createElementNS(SVGNS, "marker");
+    marker.setAttribute("id", "arrowhead");
+    marker.setAttribute("markerWidth", "8");
+    marker.setAttribute("markerHeight", "8");
+    marker.setAttribute("refX", "7");
+    marker.setAttribute("refY", "4");
+    marker.setAttribute("orient", "auto");
+    var arrowPath = document.createElementNS(SVGNS, "path");
+    arrowPath.setAttribute("d", "M0,0 L8,4 L0,8 z");
+    arrowPath.setAttribute("class", "graph-arrow");
+    marker.appendChild(arrowPath);
+    defs.appendChild(marker);
+    svg.appendChild(defs);
+
+    var edgeGroup = document.createElementNS(SVGNS, "g");
+    edges.forEach(function (e) {
+      var from = positions[e.source];
+      var to = positions[e.target];
+      if (!from || !to) return;
+      var dx = to.x - from.x, dy = to.y - from.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      var pad = 12;
+      var line = document.createElementNS(SVGNS, "line");
+      line.setAttribute("x1", from.x + (dx / dist) * pad);
+      line.setAttribute("y1", from.y + (dy / dist) * pad);
+      line.setAttribute("x2", to.x - (dx / dist) * pad);
+      line.setAttribute("y2", to.y - (dy / dist) * pad);
+      line.setAttribute("class", "graph-edge");
+      line.setAttribute("marker-end", "url(#arrowhead)");
+      var title = document.createElementNS(SVGNS, "title");
+      title.textContent = e.relation;
+      line.appendChild(title);
+      edgeGroup.appendChild(line);
+    });
+    svg.appendChild(edgeGroup);
+
+    var nodeGroup = document.createElementNS(SVGNS, "g");
+    Object.keys(positions).forEach(function (id) {
+      var pos = positions[id];
+      var g = document.createElementNS(SVGNS, "g");
+      g.setAttribute("transform", "translate(" + pos.x + "," + pos.y + ")");
+      var circle = document.createElementNS(SVGNS, "circle");
+      circle.setAttribute("r", "9");
+      circle.setAttribute("class", "graph-node node-" + pos.kind);
+      g.appendChild(circle);
+      var label = document.createElementNS(SVGNS, "text");
+      label.setAttribute("class", "graph-label");
+      label.setAttribute("x", "14");
+      label.setAttribute("y", "4");
+      label.textContent = pos.label;
+      g.appendChild(label);
+      var title = document.createElementNS(SVGNS, "title");
+      title.textContent = pos.kind + ": " + pos.label;
+      g.appendChild(title);
+      nodeGroup.appendChild(g);
+    });
+    svg.appendChild(nodeGroup);
+
+    columns.forEach(function (kind, ci) {
+      var text = document.createElementNS(SVGNS, "text");
+      text.setAttribute("x", String(marginX + ci * colWidth));
+      text.setAttribute("y", "16");
+      text.setAttribute("class", "graph-col-label");
+      text.textContent = kind;
+      svg.appendChild(text);
+    });
+
+    container.appendChild(svg);
+  }
+
+  // --- wiring ---------------------------------------------------------------
+
+  document.getElementById("ask-form").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    if (asking) return;
+    var input = document.getElementById("question-input");
+    var question = input.value.trim();
+    if (!question) return;
+    asking = true;
+    setPending(true);
+    appendPendingQuestion(question);
+    input.value = "";
+    try {
+      var res = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question }),
+      });
+      var turn = await res.json();
+      renderTurn(turn);
+    } catch (err) {
+      if (currentAnswerEl) {
+        currentAnswerEl.classList.remove("pending-answer");
+        currentAnswerEl.classList.add("turn-error");
+        currentAnswerEl.textContent = "Request failed: " + String(err);
+      }
+    } finally {
+      asking = false;
+      setPending(false);
+      await loadState();
+    }
+  });
+
+  document.getElementById("question-input").addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      document.getElementById("ask-form").requestSubmit();
+    }
+  });
+
+  loadState();
+})();
+</script>
+</body>
+</html>

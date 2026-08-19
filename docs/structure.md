@@ -88,7 +88,8 @@ Each module in `src/ray/tools/` holds one tool family. Nine tools in total.
 | `intel.py` | `domain_intel`, `entity_graph` |
 | `people.py` | `find_users` |
 | `exposure.py` | `blast_radius` |
-| `memory.py` | `remember`, `recall`, `watchlist_sweep` |
+| `memory.py` | `remember`, `recall` |
+| `watchlist.py` | `watchlist_sweep`, `extract_indicators` |
 
 `get_detection` returns the analyzer results, the decision, and the remediation for
 one message in one call. The three are always needed together, so one call
