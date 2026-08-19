@@ -778,6 +778,22 @@
   }
   .email-link-row:last-child { border-bottom: none; }
 
+  .email-body {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    font-family: "DM Sans", sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+    margin: 0 0 .75rem;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
   .email-loading {
     color: var(--muted);
     font-size: 0.88rem;
@@ -2540,6 +2556,18 @@
       meta.appendChild(val);
     });
     emailContent.appendChild(meta);
+
+    // Body text (attacker-controlled — always escapeHtml before rendering)
+    if (d.body_text) {
+      var bt = document.createElement("div");
+      bt.className = "email-links-title";
+      bt.textContent = "Message body";
+      emailContent.appendChild(bt);
+      var body = document.createElement("pre");
+      body.className = "email-body";
+      body.textContent = d.body_text;  // textContent escapes automatically
+      emailContent.appendChild(body);
+    }
 
     // Links
     if (d.links && d.links.length) {

@@ -275,7 +275,13 @@ def create_app(ray: Any) -> FastAPI:
 
     @app.get("/api/message/{message_id}")
     def get_message_preview(message_id: str) -> dict[str, Any]:
-        """Return safe header + verdict data for one message. Never returns body_text (ADR-004)."""
+        """Return header, verdict, and body_text for one message.
+
+        Body text is attacker-controlled; the portal escapes it before display.
+        The agent's ADR-004 isolation (injection scanning, fencing) applies to
+        the model context — the analyst portal is a trusted human-facing viewer
+        that shows raw evidence intentionally, the same way a mail client does.
+        """
         conn = getattr(ray, "conn", None)
         if conn is None:
             return JSONResponse(status_code=503, content={"error": "No database connection."})
@@ -307,7 +313,8 @@ def create_app(ray: Any) -> FastAPI:
 
             msg = conn.execute(
                 "SELECT message_id, received_at, sender_email, sender_display, "
-                "recipient_user_id, subject, spf, dkim, dmarc, attachment_names, campaign_id "
+                "recipient_user_id, subject, spf, dkim, dmarc, attachment_names, "
+                "campaign_id, body_text "
                 "FROM messages WHERE message_id = ?",
                 (mid,),
             ).fetchone()
@@ -316,7 +323,7 @@ def create_app(ray: Any) -> FastAPI:
 
             keys = ["message_id", "received_at", "sender_email", "sender_display",
                     "recipient_user_id", "subject", "spf", "dkim", "dmarc",
-                    "attachment_names", "campaign_id"]
+                    "attachment_names", "campaign_id", "body_text"]
             msg_dict = dict(zip(keys, msg))
 
             user = conn.execute(
@@ -363,6 +370,7 @@ def create_app(ray: Any) -> FastAPI:
                 "attack_type": decision[1] if decision else None,
                 "override_reason": decision[2] if decision else None,
                 "remediation": remediation[0] if remediation else None,
+                "body_text": msg_dict.get("body_text") or "",
                 "links": links,
             }
         except Exception as exc:  # noqa: BLE001
