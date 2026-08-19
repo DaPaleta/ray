@@ -36,7 +36,7 @@ key.** `NOTES.md` is the submission write-up and the best place to start.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-pytest -q                    # 201 tests, no key needed
+pytest -q                    # 206 tests, no key needed
 python -m ray --check        # readiness, calls no model
 
 export OCEAN_ANTHROPIC_KEY=...

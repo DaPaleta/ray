@@ -274,7 +274,7 @@ them.
 Four standing requirements followed from this, and all four were met:
 
 1. **Every stage verifiable.** Each stage ended with a test count and a named
-   assertion against a known row. 201 tests at session end, none needing a key.
+   assertion against a known row. 206 tests at session end, none needing a key.
 2. **Subagents in worktrees.** Six stages ran in isolated git worktrees. The shared
    contracts were written first so the parallel work touched disjoint files.
 3. **A task folder per genuinely unique task.** Judged as: the DSPy and portal work
