@@ -288,3 +288,59 @@ all 6 planted messages with 0 false positives across all 2288.
 
 **Worktree note:** the subagents did not commit inside their worktrees, so their
 files were copied across by hand. Later fan-outs instruct them to commit.
+
+### 2026-08-19 — Stages 9, 10, 11, and a portal defect the analyst found
+
+Fanned out the three remaining stages to subagents in worktrees. All merged.
+
+**Defect 3, reported by the analyst from the running portal.** Asking a question in
+the interface returned `SyntaxError: Unexpected token 'I', "Internal S"... is not
+valid JSON`. The server raised
+`PydanticSerializationError: Unable to serialize unknown type: <class 'sqlite3.Connection'>`.
+
+Root cause: three tool wrappers in `subagents.py` recorded their trace arguments with
+`locals()`. **Inside a closure, `locals()` also returns the free variables the
+function references**, so `ctx` — and with it the sqlite3 connection — entered the
+tool-call log. `Turn.to_dict()` goes straight to the browser, so one unserializable
+value turned every good answer into a 500.
+
+The portal's own tests passed throughout, because they used a fake Ray whose tools
+recorded nothing. The gap was between two correct components.
+
+Two fixes, because the leak and the fragility are separate problems:
+
+1. `find_messages`, `find_users`, and `recall` now build their argument dictionaries
+   explicitly. No `locals()` remains anywhere in `src/ray/`.
+2. `trace.json_safe` coerces anything unexpected to its repr, and every path into a
+   trace passes through it. A trace records what happened; it must never be the
+   reason a good answer fails to reach the analyst.
+
+`tests/test_trace_serialization.py` closes both halves: `json_safe` tolerates a
+connection, and a test drives **every registered tool through the real wrappers** and
+asserts each recorded argument is a scalar. A further test fails if the registry gains
+a tool that the serialization test does not cover.
+
+**Stage 10, the compiled adjudicator, finished inside its 35-minute timebox** with
+real measured numbers on Haiku:
+
+| Program | Agreement | Adversarial | Combined |
+|---|---|---|---|
+| Hand-written baseline | 0.625 | 0.688 | **0.6625** |
+| DSPy `BootstrapFewShot` | 0.833 | 0.688 | **0.7458** |
+| Constant `safe` predictor | high | **0.000** | far below both |
+
+The adversarial half carries 60% of the combined score, above the 50% floor ADR-009
+requires. The constant-`safe` result of 0.0 is asserted by a test, which is the
+demonstration that a one-sided metric would have been fooled: agreement alone would
+score that predictor above 98%.
+
+The subagent also caught an honesty problem in its own artifact. `BootstrapFewShot`
+adds few-shot demonstrations without rewriting instruction text, so the exported
+`prompt` would have been byte-identical to the baseline while carrying a higher
+`score`. It folded the three bootstrapped demonstrations into the exported prompt so
+the artifact matches the number recorded beside it.
+
+**Stage 11, the portal**, serves one self-contained page: no external script,
+stylesheet, font, or CDN. Citation chips, the tool-call log, the entity graph as
+inline SVG, and the memory confirm gate. Untrusted strings render through
+`textContent` or a single escaping helper, because an answer can quote attacker text.

@@ -29,6 +29,29 @@ def _preview(text: str, limit: int = MAX_PREVIEW) -> str:
     return flat[: limit - 1] + "…"
 
 
+def json_safe(value: Any, depth: int = 0) -> Any:
+    """Coerce a value into something JSON can serialize.
+
+    The portal returns `Turn.to_dict()` straight to the browser, so one
+    unserializable value anywhere in a trace turns the whole answer into a 500. That
+    happened once for real: a tool recorded its arguments with `locals()`, which
+    inside a closure also returns the referenced free variables, so a
+    sqlite3.Connection reached the response.
+
+    A trace is a record of what happened. It must never be the reason a good answer
+    fails to reach the analyst, so anything unexpected degrades to its repr.
+    """
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if depth > 6:
+        return repr(value)[:200]
+    if isinstance(value, dict):
+        return {str(k): json_safe(v, depth + 1) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [json_safe(v, depth + 1) for v in value]
+    return repr(value)[:200]
+
+
 @dataclass
 class ToolCall:
     name: str
@@ -77,18 +100,22 @@ class Turn:
     def record(self, name: str, arguments: dict[str, Any], result: Any = None,
                subagent: str | None = None) -> ToolCall:
         """Record one tool call. `result` may be a ToolResult or a plain string."""
-        call = ToolCall(name=name, arguments=dict(arguments), subagent=subagent)
+        call = ToolCall(
+            name=name, arguments=json_safe(dict(arguments)), subagent=subagent
+        )
         if result is not None:
             text = getattr(result, "text", None)
             call.result_preview = _preview(text if isinstance(text, str) else str(result))
             call.citations = list(getattr(result, "citations", []) or [])
-            call.injection_findings = list(getattr(result, "injection_findings", []) or [])
+            call.injection_findings = json_safe(
+                list(getattr(result, "injection_findings", []) or [])
+            )
             call.window = getattr(result, "window", None)
             call.is_unknown = bool(getattr(result, "is_unknown", False))
             data = getattr(result, "data", None)
             if isinstance(data, dict) and "nodes" in data and "edges" in data:
                 # The newest graph wins, so the portal renders the relevant one.
-                self.graph = {"nodes": data["nodes"], "edges": data["edges"]}
+                self.graph = json_safe({"nodes": data["nodes"], "edges": data["edges"]})
         self.calls.append(call)
         return call
 
@@ -123,7 +150,9 @@ class Turn:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        """The portal serializes this straight to JSON, so it passes through
+        `json_safe`. See that function for why."""
+        return json_safe({
             "question": self.question,
             "answer": self.answer,
             "model": self.model,
@@ -137,7 +166,7 @@ class Turn:
             "injection_findings": self.all_injection_findings,
             "memory_proposals": self.memory_proposals,
             "graph": self.graph,
-        }
+        })
 
     # --- rendering --------------------------------------------------------
 

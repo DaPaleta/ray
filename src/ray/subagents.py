@@ -94,7 +94,29 @@ def build_tools(ctx: RayContext) -> dict[str, BaseTool]:
         still read verdict 'safe' while carrying an attack type. The result states
         the exact time window it used.
         """
-        args = {k: v for k, v in locals().items() if v is not None and v is not False}
+        # Build this explicitly. `locals()` inside a closure also returns the free
+        # variables the function references, so it would capture `ctx` — and with it a
+        # sqlite3.Connection, which is not JSON-serializable and breaks the portal.
+        args = {
+            k: v
+            for k, v in (
+                ("department", department),
+                ("recipient", recipient),
+                ("sender_email", sender_email),
+                ("sender_domain", sender_domain),
+                ("link_domain", link_domain),
+                ("subject_contains", subject_contains),
+                ("verdict", verdict),
+                ("attack_type", attack_type),
+                ("campaign_id", campaign_id),
+                ("flagged_only", flagged_only),
+                ("relative_window", relative_window),
+                ("since", since),
+                ("until", until),
+                ("limit", limit),
+            )
+            if v is not None and v is not False
+        }
         result = messages.find_messages(
             ctx.conn,
             department=department,
@@ -180,7 +202,18 @@ def build_tools(ctx: RayContext) -> dict[str, BaseTool]:
         Use this to check whether a display name matches a real person, and to learn
         their real email address. A display name in an email proves nothing.
         """
-        args = {k: v for k, v in locals().items() if v is not None}
+        # Explicit, for the reason given in find_messages above.
+        args = {
+            k: v
+            for k, v in (
+                ("name", name),
+                ("email", email),
+                ("department", department),
+                ("is_vip", is_vip),
+                ("limit", limit),
+            )
+            if v is not None
+        }
         result = people.find_users(
             ctx.conn,
             name=name,
@@ -196,7 +229,10 @@ def build_tools(ctx: RayContext) -> dict[str, BaseTool]:
 
         Call this early in an investigation. A stored policy can change a verdict.
         """
-        args = {k: v for k, v in locals().items() if v is not None}
+        # Explicit, for the reason given in find_messages above.
+        args = {
+            k: v for k, v in (("query", query), ("kind", kind)) if v is not None
+        }
         result = memory_tools.recall(ctx.conn, query=query, kind=kind)
         return _emit(ctx, "recall", args, result)
 
