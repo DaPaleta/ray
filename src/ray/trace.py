@@ -10,6 +10,7 @@ A trace records what happened. It never changes what happened.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -36,10 +37,33 @@ def _now() -> str:
 
 
 def _preview(text: str, limit: int = MAX_PREVIEW) -> str:
-    flat = text.strip()
+    flat = scrub(text.strip())
     if len(flat) <= limit:
         return flat
     return flat[: limit - 1] + "…"
+
+
+# Secret shapes that must never reach a trace, a transcript, or the browser.
+# Defence in depth: the leak that put a key into four transcripts is fixed at source
+# (explicit tool arguments) and at the dataclass (Config.api_key has repr=False). This
+# is the third layer, because a transcript is a file that gets shared.
+_SECRET_PATTERNS = (
+    re.compile(r"sk-ant-[A-Za-z0-9_-]{8,}"),
+    re.compile(r"sk-proj-[A-Za-z0-9_-]{8,}"),
+    re.compile(r"sk-[A-Za-z0-9]{20,}"),
+    re.compile(r"(?i)\b(api[_-]?key|secret|token|password)\b\s*[=:]\s*'?\"?[A-Za-z0-9_\-]{12,}"),
+)
+
+REDACTED = "[REDACTED-SECRET]"
+
+
+def scrub(text: str) -> str:
+    """Replace anything shaped like a credential. Applied to every trace string."""
+    if not text:
+        return text
+    for pattern in _SECRET_PATTERNS:
+        text = pattern.sub(REDACTED, text)
+    return text
 
 
 def json_safe(value: Any, depth: int = 0) -> Any:
@@ -54,15 +78,17 @@ def json_safe(value: Any, depth: int = 0) -> Any:
     A trace is a record of what happened. It must never be the reason a good answer
     fails to reach the analyst, so anything unexpected degrades to its repr.
     """
-    if value is None or isinstance(value, (bool, int, float, str)):
+    if isinstance(value, str):
+        return scrub(value)
+    if value is None or isinstance(value, (bool, int, float)):
         return value
     if depth > 6:
-        return repr(value)[:200]
+        return scrub(repr(value)[:200])
     if isinstance(value, dict):
         return {str(k): json_safe(v, depth + 1) for k, v in value.items()}
     if isinstance(value, (list, tuple, set)):
         return [json_safe(v, depth + 1) for v in value]
-    return repr(value)[:200]
+    return scrub(repr(value)[:200])
 
 
 @dataclass

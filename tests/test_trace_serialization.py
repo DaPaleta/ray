@@ -220,3 +220,62 @@ def test_the_markdown_line_cap_reports_what_it_dropped():
     turn.record("find_messages", {}, many)
     rendered = turn.to_markdown()
     assert "more line(s) not shown" in rendered
+
+
+# --- no secret may ever reach a trace ------------------------------------------
+
+
+FAKE_KEY = "sk-ant-api03-" + "A" * 24
+
+
+def test_config_repr_never_shows_the_key():
+    """A key reached four committed transcripts through repr(RayContext)."""
+    from ray.config import load_config
+
+    cfg = load_config(env={"OCEAN_ANTHROPIC_KEY": FAKE_KEY})
+    assert cfg.api_key == FAKE_KEY, "the key must still be readable by the code"
+    assert "sk-ant" not in repr(cfg), "repr must not expose the key"
+
+
+def test_scrub_redacts_key_shapes():
+    assert FAKE_KEY not in trace.scrub(f"the key is {FAKE_KEY} ok")
+    assert trace.REDACTED in trace.scrub(f"the key is {FAKE_KEY} ok")
+    assert "sk-proj" not in trace.scrub("sk-proj-" + "B" * 24)
+    assert trace.scrub("ordinary text") == "ordinary text"
+
+
+def test_a_trace_never_carries_a_key(cfg):
+    """Even if a key is handed straight to a tool argument, it must not persist."""
+    turn = trace.Turn(question=f"leak {FAKE_KEY}", model="test")
+    result = schemas.ToolResult(text=f"result mentioning {FAKE_KEY}")
+    turn.record("find_messages", {"note": FAKE_KEY}, result)
+    payload = json.dumps(turn.to_dict())
+    assert FAKE_KEY not in payload
+    assert "sk-ant-api03" not in payload
+
+
+def test_no_committed_transcript_contains_a_key():
+    """The regression guard for the leak itself. Fails the suite if one returns."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    offenders = []
+    for path in (root / "transcripts").glob("*.md"):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if "sk-ant-api" in text or "sk-proj-" in text:
+            offenders.append(path.name)
+    assert not offenders, f"a credential is present in: {offenders}"
+
+
+def test_no_committed_transcript_reprs_a_ray_context():
+    """RayContext in a transcript is how the key escaped. Ban the shape, not just
+    the secret."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    offenders = [
+        path.name
+        for path in (root / "transcripts").glob("*.md")
+        if "RayContext(" in path.read_text(encoding="utf-8", errors="replace")
+    ]
+    assert not offenders, f"a RayContext repr leaked into: {offenders}"

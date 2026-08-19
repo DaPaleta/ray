@@ -7,7 +7,7 @@ See docs/decisions/ADR-005-model-boundary-and-offline-testability.md.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # The repository root, resolved from this file: src/ray/config.py -> ray/
@@ -36,10 +36,15 @@ def _resolve(value: str) -> Path:
 class Config:
     db_path: Path
     model: str
-    api_key: str | None
-    compiled_prompt_path: Path
-    host: str
-    port: int
+    # repr=False so the key can never reach a log, a trace, or a transcript through
+    # repr(config). It did once: a tool recorded its arguments with locals(), which
+    # inside a closure also returns free variables, so the whole RayContext — and with
+    # it this Config — was repr'd into four committed transcripts. The leak is fixed at
+    # its source, and this makes the same mistake harmless if it recurs.
+    api_key: str | None = field(default=None, repr=False)
+    compiled_prompt_path: Path = REPO_ROOT / DEFAULT_COMPILED_PROMPT
+    host: str = DEFAULT_HOST
+    port: int = DEFAULT_PORT
 
     @property
     def has_key(self) -> bool:
