@@ -94,7 +94,7 @@ Each term below has one meaning. This project uses no synonym for any of them.
 
 ### 4.1 In scope
 
-Ray answers five classes of question.
+Ray answers six classes of question.
 
 | # | Capability | Example question |
 |---|---|---|
@@ -165,5 +165,5 @@ capabilities, because each one supports all of the six above.
 | Task design and execution log | `docs/tasks/<task-name>/` |
 | Commands and tech stack | `README.md` |
 | Instructions for coding agents | `AGENTS.md` |
-| Submitted design write-up | `NOTES.md` |
+| Submitted design write-up | `NOTES.md` — start here |
 | Original brief | `docs/home-task-brief.pdf` |

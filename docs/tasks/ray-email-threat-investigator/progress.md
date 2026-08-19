@@ -10,45 +10,50 @@
 *This section is the answer to "what is done, how do I run it, and how do I request a
 change". It is updated at the end of every stage.*
 
-**Last updated:** stages 2, 3, 5, and the memory half of 6 are complete. **108 tests
-pass, and none needs an API key.**
+**Last updated:** session end. **All three tiers complete. 201 tests pass with no API
+key.** `NOTES.md` is the submission write-up and the best place to start.
 
 ### What works right now
 
 | Capability | State | How it is proven |
 |---|---|---|
-| Configuration and defaults | working | 5 tests |
-| Read-only database access | working | 4 tests, one per write verb |
-| Time-window resolution, both traps closed | working | 7 tests, including the 38-versus-41 trap |
-| Prompt-injection detection | working | All 6 planted messages caught, **0 false positives across all 2288** |
+| Configuration, read-only access, time resolution | working | 30 tests; both time traps closed |
+| Prompt-injection detection | working | All 6 planted messages, **0 false positives across 2288** |
 | Grounding verification | working | 23 tests, including citation forgery by SQL wildcard |
-| `find_messages`, `get_message`, `get_message_body` | working | 28 tests in `test_core_tools.py` |
-| `get_detection` | working | Same suite. Reports the analyzers that did **not** run |
-| Memory: `remember`, `recall`, provenance, confirm gate | working | 19 tests. The poison payload is refused |
-| `domain_intel`, `entity_graph`, `find_users` | in progress | stage 4, running in a worktree |
-| Agent, subagents, prompts, one-shot runner | written, untested | needs stage 4 to merge, then a live run |
-| Blast radius, watchlist sweep | not built | stage 9 |
-| DSPy compiled prompt | not built | stage 10 |
-| Portal, graph, trace rendering | `trace.py` works; portal not built | stage 11 |
+| The 11 tools | working | `test_core_tools`, `test_intel_tools`, `test_exposure`, `test_watchlist` |
+| Memory: provenance and confirm gate | working | 19 tests; the poison payload is refused and traced to its message |
+| Agent, 3 subagents, delegation, attribution | working | Live runs; both specialists fire on scenario 4 |
+| Capability 5a blast radius | working | 15 recipients, 7 departments, 1 VIP, the 2 live messages named |
+| Capability 5b watchlist loop | working | `transcripts/07`: audit, propose, confirm, sweep |
+| Compiled adjudicator prompt | working | Loads with score 0.7458; baseline 0.6625 |
+| Portal, graph, trace, specialist badge | working | 11 tests; self-contained page verified |
+| Transcripts | 7 recorded | `transcripts/`, reproducible from `scripts/` |
 
-### How to run what is built
+### How to run it
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-pytest -q                  # 108 tests, no key needed
-python -m ray --check      # readiness report, calls no model
-```
+pytest -q                    # 201 tests, no key needed
+python -m ray --check        # readiness, calls no model
 
-Ray cannot yet answer a question end to end. That needs stage 4 merged and one live
-run. Once it can:
-
-```bash
 export OCEAN_ANTHROPIC_KEY=...
-python -m ray --ask "Anything targeting our finance team this week?"
-python -m ray                                  # the portal, after stage 11
+python -m ray                                  # the portal, http://127.0.0.1:8765
+python -m ray --ask "Anything targeting finance this week?"
+python scripts/record_transcripts.py --list    # the 7 recorded scenarios
 ```
+
+The committed database is untouched: `agent_memory` is still empty, because the
+recorder works on a scratch copy.
+
+### Known limits
+
+`NOTES.md` section 7 owns this list. In short: the model is Haiku and not the
+`gpt-5.6-luna` the brief names (ADR-005); delegation is model-driven and Haiku does not
+delegate on every trigger; a corrective re-cite pass compensates for weak citation
+discipline; nothing verifies that *every* claim is cited, only that every citation
+resolves; the DSPy label sets are small; and the work exceeded the brief's 3 hours.
 
 ### How to request a change
 
@@ -72,9 +77,9 @@ that keeps each fact in one place.
 | 1 | 5 | Injection and grounding | **done** |
 | 1 | 6 | Agent, subagents, and memory | **done** — live run verified |
 | 1 | 7 | One-shot runner and transcripts | **done** — 7 transcripts recorded |
-| 1 | 8 | Write-up | not started |
+| 1 | 8 | Write-up | **done** — `NOTES.md` |
 | 2 | 9 | Capability 5a and 5b | **done** |
-| 2 | 10 | DSPy compile | not started |
+| 2 | 10 | DSPy compile | **done** — 0.6625 to 0.7458 |
 | 3 | 11 | Portal, graph, and trace | **done** |
 
 Stages 2 to 5 need no key. Stage 6 onward needs `OCEAN_ANTHROPIC_KEY`, which the

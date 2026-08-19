@@ -1,6 +1,6 @@
 # Plan — Ray, the email-threat investigator agent
 
-**Status:** approved, not yet implemented
+**Status:** implemented. All three tiers complete; see `progress.md` and `NOTES.md`.
 **Created:** 2026-08-19
 **Owner:** Daniel Goren
 **Jira ticket:** none. This task is an external home assignment, not Evinced work.
@@ -89,7 +89,7 @@ hides the two released messages, because their recorded verdict is `safe`.
 
 **A verdict filter also misses the worst message in the window.** Message
 `276266c0` from scenario 2.4 reached Gwen Mercer in `finance` on 2026-08-13. Its
-verdict is `safe` and its attack type is empty, so no verdict filter and no
+verdict is `safe` and its attack type is absent, so no verdict filter and no
 attack-type filter returns it. Only the stored CFO policy surfaces it. This is
 the argument for capability 4 in one row.
 
@@ -590,7 +590,7 @@ A criterion is met only when a test or a saved transcript demonstrates it.
    DMARC failure, the malicious link scan, and the quarantine. Every claim
    carries a citation.
 8. Ray links `93bae03b` to the acme-portal activity through the shared link
-   domain, and states that `campaign_id` is empty on this message.
+   domain, and states that this message carries no `campaign_id`.
 
 **Capability 3 — indicator lookup**
 

@@ -12,7 +12,7 @@ category here in the same change that creates it.
 ray/
 ├── AGENTS.md                     Instructions for coding agents. Codex reads this file first.
 ├── README.md                     Tech stack, commands, environment variables.
-├── NOTES.md                      Submitted design write-up. Written last.
+├── NOTES.md                      Submitted design write-up. Start here.
 ├── requirements.txt              Pinned serving dependencies. One command runs Ray with these.
 ├── requirements-dev.txt          Build-time dependencies. Adds DSPy for the compile step.
 ├── .env.example                  Template for local environment variables. Holds no secret.
@@ -22,7 +22,8 @@ ray/
 │   └── ocean_home_task.db        The supplied SQLite database. Ray's only source of truth.
 │
 ├── prompts/
-│   └── adjudicator.compiled.json The DSPy build artifact. Committed. See ADR-009.
+│   ├── adjudicator.compiled.json The DSPy build artifact. Committed. See ADR-009.
+│   └── adjudicator.report.md     The before-and-after compile report.
 │
 ├── src/ray/
 │   ├── __main__.py               Entry point. Starts the portal.

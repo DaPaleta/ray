@@ -11,8 +11,12 @@ The organization is Acme Robotics. The primary domain is `acme.com`.
 
 ## Status
 
-The design is complete. The implementation has not started.
-`docs/tasks/ray-email-threat-investigator/progress.md` holds the stage status.
+Complete and working. **201 tests pass with no API key**, 11 tools, 3 specialist
+subagents, 7 recorded transcripts, and a compiled adjudicator prompt.
+
+`NOTES.md` is the submission write-up and the best place to start.
+`docs/tasks/ray-email-threat-investigator/progress.md` opens with a "Current state"
+section covering what works, how to run it, and how to request a change.
 
 ## Quick start
 
@@ -42,6 +46,9 @@ The database ships with the repository, so no data setup is needed.
 | `pytest` | Run every test. | no |
 | `pytest -k tools` | Run the tool tests only. | no |
 | `python -m ray.dspy.compile_adjudicator` | Build step. Recompiles the adjudicator prompt. Needs `requirements-dev.txt`. | yes |
+| `python -m ray.dspy.compile_adjudicator --dry-run` | Builds the label sets and prints their sizes. Calls no model. | no |
+| `python scripts/record_transcripts.py --list` | List the recorded scenarios. | no |
+| `python scripts/record_transcripts.py 4` | Re-record one scenario. Uses a scratch database copy. | yes |
 
 No test calls a model. The data layer and the tool layer are therefore testable
 with no key present. See ADR-005.
@@ -102,6 +109,17 @@ Capabilities 5a and 5b are the two additions beyond the four required ones.
 Ray also forms an independent verdict and reports where it diverges from the
 recorded one. Seven recorded verdicts in the database do not match their evidence.
 
+The measured result of the compiled adjudicator prompt, against a two-sided metric
+that a constant "safe" answer cannot game:
+
+| Program | Agreement | Adversarial | Combined |
+|---|---|---|---|
+| Hand-written baseline | 0.625 | 0.688 | 0.6625 |
+| DSPy `BootstrapFewShot` | 0.833 | 0.688 | **0.7458** |
+| Constant `safe` | high | **0.000** | far below both |
+
+`prompts/adjudicator.report.md` holds the report; ADR-009 explains the metric.
+
 ## How Ray reasons
 
 Three specialized subagents handle the questions that a query cannot answer. See
@@ -110,7 +128,7 @@ ADR-008.
 | Subagent | Question | The case it cracks |
 |---|---|---|
 | `auth-forensics` | Does the authentication result support the claimed sender? | A fake-CFO wire request that passes SPF, DKIM, and DMARC, because the attacker owns the lookalike domain. |
-| `campaign-correlator` | Which messages belong to the same activity? | A phishing message whose `campaign_id` is empty but which shares a link domain with 14 campaign members. |
+| `campaign-correlator` | Which messages belong to the same activity? | A phishing message that carries no `campaign_id` but shares a link domain with 14 campaign members. |
 | `verdict-adjudicator` | What is the independent verdict, and does it diverge? | Seven recorded verdicts that the evidence does not support. |
 
 The adjudicator prompt is compiled with DSPy against the database, and measured
@@ -144,7 +162,7 @@ before-and-after number. See ADR-009.
 | `docs/decisions/` | The ten architecture decision records. |
 | `docs/tasks/ray-email-threat-investigator/` | Plan, progress log, conversation log. |
 | `AGENTS.md` | Rules for a coding agent working in this repository. |
-| `NOTES.md` | The submitted design write-up. Written last. |
+| `NOTES.md` | The submitted design write-up. **Start here.** |
 | `docs/home-task-brief.pdf` | The original brief. |
 
 ## Security

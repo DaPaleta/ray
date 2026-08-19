@@ -123,7 +123,7 @@ draft.
 | 6 | The 15 recipients span 6 departments | 7 |
 
 Correcting item 1 surfaced the strongest fact in the plan. Message `276266c0`, the
-fake-CFO wire request, holds `verdict = 'safe'` and an **empty** attack type. No
+fake-CFO wire request, holds `verdict = 'safe'` and **no** attack type. No
 verdict filter and no attack-type filter returns it. Only the stored CFO policy
 surfaces it. That single row is the whole argument for capability 4, and the agent
 found it only by checking a number it had already written down.
@@ -143,8 +143,8 @@ The analyst supplied a new environment variable and declined verification:
 > 4.5. use that! don't check it now, i vouch for it."
 
 This reversed decision D5 from 1.5, where the analyst had chosen to wait for the
-OpenAI key. The agent did not test the key, as instructed. Open item O3 in
-`progress.md` records that the key is unverified by request.
+OpenAI key. The agent did not test the key, as instructed, and recorded it as open
+item O3. Session 3 closed that item: every live run used the key successfully.
 
 ### 2.2 The analyst described their own design
 
@@ -258,6 +258,71 @@ them.
 
 ---
 
+---
+
+## Session 3 — 2026-08-19: implementation
+
+### The analyst's instruction
+
+> "let's run all, ill stop you when we're short on time. each stage should be
+> verifiable so we knkow it's done. use subagents with medium effort and worktrees for
+> parallel execution. each subagent task should get its own task folder if the task is
+> truly unique. From time to time I would like to pause and check how the system looks
+> like and correct you. For that sake it should be clear at all times (when I ask) what
+> is already done, how can I run what's built, and request changes."
+
+Four standing requirements followed from this, and all four were met:
+
+1. **Every stage verifiable.** Each stage ended with a test count and a named
+   assertion against a known row. 201 tests at session end, none needing a key.
+2. **Subagents in worktrees.** Six stages ran in isolated git worktrees. The shared
+   contracts were written first so the parallel work touched disjoint files.
+3. **A task folder per genuinely unique task.** Judged as: the DSPy and portal work
+   introduced new technology and their own ADRs; stages 3, 4, 5, and 9 were direct
+   execution of `plan.md` section 4.4 and logged into this task instead. The subagents
+   were forbidden from editing `docs/`, so their doc updates were folded in on merge.
+4. **A standing status surface.** `progress.md` now opens with "Current state — read
+   this first", answering what is done, how to run it, and how to request a change. It
+   was refreshed at every checkpoint.
+
+An enabling step the instruction implied but did not state: **worktrees require a base
+commit**, so the first commit was made without being asked. Nine commits followed.
+
+### Corrections the analyst made during implementation
+
+| # | The analyst said | What it uncovered |
+|---|---|---|
+| 1 | "asking a question in the ui interface resolves to Request failed: SyntaxError… not valid JSON" | The portal returned 500 on every question. `locals()` inside a closure leaked a `sqlite3.Connection` into the trace. Defect 4. |
+| 2 | "only the first message is posted, fix it so all will be seen" | The evidence panel showed one row of a seven-row result. The trace preview was capped at 600 characters. Defect 5a. |
+| 3 | "if a specialized agent participated in the analysis, add a badge that says so" | The badge could never have rendered: attribution was never wired, and Haiku had not delegated once in seven transcripts. Defect 5b. |
+
+Every one of these was in the interface layer, and every one was invisible to a passing
+test suite. `progress.md` records the reason: the portal tests used a fake Ray whose
+tools recorded nothing, so **a component test that faked its collaborator proved the
+component and not the seam.**
+
+Correction 3 mattered most. A compiled adjudicator prompt is worth nothing if the
+adjudicator is never invoked, and before that fix it effectively was not.
+
+### The analyst's question worth recording
+
+> "in general, how are specialized subagents get called?"
+
+`deepagents` gives the main agent a `task` tool. The model calls
+`task(description=..., subagent_type="auth-forensics")`; the specialist then runs its
+own agent loop in an isolated context, with its own system prompt and its own narrow
+tool set, and returns its final text as the tool result.
+
+Three consequences shaped the design: dispatch is **model-driven**, so no rule routes a
+question; the specialist's context is **isolated**, so Ray's framing of the sub-task is
+what the specialist sees; and tool sets are **per-specialist**, which is what made
+attribution possible once each specialist was given its own tagged tool instances.
+
+### Session close
+
+The analyst chose to continue past the brief's 3-hour budget rather than cut a tier,
+having been told the overrun was in progress. All three tiers completed.
+
 ## Decision register
 
 Decisions are numbered across sessions. A superseded decision stays listed.
@@ -315,5 +380,7 @@ Decisions are numbered across sessions. A superseded decision stays listed.
 
 | # | Question | Blocks |
 |---|---|---|
-| O1 | Approve the tier plan, and choose the landing point in `plan.md` section 5. | Stage 2. |
-| O3 | Does `OCEAN_ANTHROPIC_KEY` reach Haiku 4.5? Unverified at the analyst's instruction. | Stage 6. |
+| ~~O1~~ | ~~Approve the tier plan.~~ Closed: the analyst chose all three tiers. | — |
+| ~~O3~~ | ~~Does `OCEAN_ANTHROPIC_KEY` reach Haiku 4.5?~~ Closed: verified by every live run. | — |
+
+No open question remains. `NOTES.md` section 8 holds the next steps.
