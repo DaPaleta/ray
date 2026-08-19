@@ -419,3 +419,45 @@ asks for. Tuning stopped here rather than chasing a small model further.
 
 This matters for ADR-009: a compiled adjudicator prompt is worth nothing if the
 adjudicator is never invoked. Before fix 2 it effectively was not.
+
+### 2026-08-19 — Defect 6: a live API key reached four committed transcripts
+
+Found by a repository-wide secret scan while verifying that a clean checkout works —
+the last check before handover, and it should have been the first.
+
+**Cause.** The `locals()` defect from defect 4 recorded `repr(RayContext)` into the
+trace, and that repr contains `Config(api_key='sk-ant-…')`. Four transcripts recorded
+before that fix carried a working Anthropic key, and so did four commits. The brief
+says "Don't commit your API key." It was committed transitively, through a debugging
+convenience that stringified a whole context object.
+
+**Three layers now stand between a credential and a trace.** One would not be enough,
+because the failure was not a missing check — it was a value travelling somewhere
+nobody was looking.
+
+1. **Source.** Tool arguments are built explicitly. No `locals()` remains in
+   `src/ray`.
+2. **Dataclass.** `Config.api_key` is declared `field(repr=False)`, so `repr(config)`
+   cannot expose it even if a whole context is stringified again.
+3. **Trace.** `trace.scrub` redacts credential shapes from every string entering a
+   trace, applied inside `json_safe` and `_preview`. A transcript is a file that gets
+   shared, so it gets the strictest treatment.
+
+**Guards.** `repr(Config)` hides the key; `scrub` redacts the known shapes; a trace
+handed a key discards it; and two tests fail the whole suite if any committed
+transcript contains a credential or a `RayContext` repr. The fake key in the test is
+assembled from string parts so that a repository-wide scan never has to whitelist a
+test file.
+
+**Remediation.** Transcripts 01, 02, 03, and 07 re-recorded with the fixed code. The
+key purged from git history with `filter-branch`, the agent worktrees and their
+branches removed, and reflogs expired with `gc --prune=now`. The real key fragment
+returns nothing from `git rev-list --all`.
+
+**The key still had to be rotated.** A history rewrite removes the object; it does not
+undo the exposure. That is the analyst's action, and it was reported at handover.
+
+**What this says about process.** Defects 4, 5, and 6 all descend from one line of
+convenience code, and each surfaced in a different way: a 500 in the browser, a
+truncated panel, and a leaked credential. The suite passed through all three. A secret
+scan belongs in the definition of done, not in the final verification pass.

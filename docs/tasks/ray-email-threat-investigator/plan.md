@@ -772,6 +772,10 @@ A change is done when all of the following hold.
 5. Every claim written into a document is verified against the database. Run the
    query. Do not restate a number from memory. Section 2 of `progress.md` records
    six claims that failed this check during planning.
+6. **A repository-wide secret scan passes.** `grep -rE 'sk-ant-|sk-proj-|sk-[A-Za-z0-9]{20,}'`
+   returns nothing outside a test that assembles a fake from parts. A live key reached
+   four committed transcripts through `repr(RayContext)`; `progress.md` defect 6
+   records it. Run this before every commit, not at the end.
 
 ## 10. Out of scope for this task
 

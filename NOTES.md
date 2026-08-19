@@ -289,6 +289,10 @@ numbers. Two of them contradicted me, correctly:
   mechanism that proves Ray is not hallucinating could have been forged by Ray. Fixed
   with `substr(column, 1, ?) = ?` and a test that asserts the forgery fails.
 
+The same discipline caught my worst mistake, but late: a repository-wide secret scan
+on the final pass found that a live API key had reached four committed transcripts
+(§6, defect 6). A scan I should have been running from the first commit, not the last.
+
 Full session history, including my wrong turns, is in
 `docs/tasks/ray-email-threat-investigator/conversation.md`. It records the badly framed
 questions I asked, a decision I reversed, seven numbers I got wrong and corrected by
@@ -316,6 +320,26 @@ work.
    characters; and `_emit` never passed a subagent, because all three specialists
    shared one set of tool objects — so `subagents_used` was always empty and no
    transcript contained a single delegation. Found by the reviewer asking for a badge.
+
+6. **A live API key reached four committed transcripts.** The `locals()` defect in 4
+   had a second consequence I did not see at the time: it recorded
+   `repr(RayContext)` into the trace, and that repr contained
+   `Config(api_key='sk-ant-…')`. Four transcripts and four commits carried a working
+   credential. Found by a repository-wide secret scan while verifying a clean
+   checkout, on the last pass before handover.
+
+   The brief says "Don't commit your API key." I did, transitively, through a
+   debugging convenience. Three layers now stand between a credential and a trace:
+   tool arguments are built explicitly (no `locals()` anywhere in `src/ray`);
+   `Config.api_key` is declared `repr=False`, so the same mistake would be harmless if
+   it recurred; and `trace.scrub` redacts credential shapes from every string entering
+   a trace, because a transcript is a file that gets shared. Four tests guard it,
+   including two that fail the suite if any committed transcript contains a credential
+   or a `RayContext` repr.
+
+   The affected transcripts were re-recorded and the key was purged from git history.
+   **The key still had to be rotated**, because it had existed in commits — a rewrite
+   removes the object, not the exposure.
 
 **The pattern in 4 and 5 is the lesson.** Both were in the interface layer and both
 were invisible to a passing suite, because the portal tests used a fake Ray whose tools
