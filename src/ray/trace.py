@@ -15,7 +15,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-MAX_PREVIEW = 600
+# How much of a tool's output the trace keeps for display.
+#
+# This is a DISPLAY limit only — the model always receives the tool's full text
+# through `ToolResult.render()`. It was 600, which cut a seven-row message table down
+# to its header and one row, so the analyst saw one message where Ray had found
+# seven. The evidence panel exists to show the rows, so the cap has to clear a full
+# result: `find_messages` at its default limit of 50 rows is about 8 KB.
+#
+# The cap still exists, because an unbounded preview would let one pathological tool
+# result dominate a transcript and the JSON payload.
+MAX_PREVIEW = 24000
+
+# How many lines of a result the markdown transcript prints. Same reasoning.
+MAX_PREVIEW_LINES = 400
 
 
 def _now() -> str:
@@ -207,8 +220,12 @@ class Turn:
             if call.result_preview:
                 lines.append("")
                 lines.append("   ```")
-                for row in call.result_preview.splitlines()[:18]:
+                preview_lines = call.result_preview.splitlines()
+                for row in preview_lines[:MAX_PREVIEW_LINES]:
                     lines.append(f"   {row}")
+                if len(preview_lines) > MAX_PREVIEW_LINES:
+                    dropped = len(preview_lines) - MAX_PREVIEW_LINES
+                    lines.append(f"   … {dropped} more line(s) not shown")
                 lines.append("   ```")
             lines.append("")
 

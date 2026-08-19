@@ -344,3 +344,35 @@ the artifact matches the number recorded beside it.
 stylesheet, font, or CDN. Citation chips, the tool-call log, the entity graph as
 inline SVG, and the memory confirm gate. Untrusted strings render through
 `textContent` or a single escaping helper, because an answer can quote attacker text.
+
+### 2026-08-19 — Defect 4, also reported by the analyst: a truncated evidence panel
+
+The portal showed `Found 7 message(s) matching the filters.` above a table holding its
+header and **one** row. The analyst saw one message where Ray had found seven.
+
+Cause: `trace.MAX_PREVIEW` was 600 characters, and a seven-row message table exceeds
+that. A second cap in `Turn.to_markdown` printed only the first 18 lines of a result,
+so the saved transcripts were clipped the same way.
+
+Both are **display limits only.** The model always received the tool's full text
+through `ToolResult.render()`, so no answer was ever computed from truncated
+evidence — this cost visibility, not correctness. That distinction matters, because
+the evidence panel exists precisely so the analyst can check Ray's rows.
+
+Fixes:
+- `MAX_PREVIEW` raised to 24000, which clears `find_messages` at its default limit of
+  50 rows.
+- `MAX_PREVIEW_LINES` set to 400, and the markdown now states how many lines it
+  dropped rather than ending silently.
+- The portal's `.call-preview` scroll box raised from 220px to 560px.
+
+A cap still exists in both places, so one pathological result cannot dominate a
+transcript or the JSON payload.
+
+Four new tests: every one of the seven flagged finance ids appears in the preview and
+in the rendered markdown, a pathological result is still capped, and the markdown
+reports what it dropped.
+
+Both defects the analyst found were in the interface layer, and both were invisible to
+the test suite because the portal tests used a fake Ray. The lesson recorded here: a
+component test that fakes its collaborator proves the component, not the seam.

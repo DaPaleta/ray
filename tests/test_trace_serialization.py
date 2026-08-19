@@ -160,3 +160,63 @@ def test_every_registered_tool_is_covered_by_the_serialization_test(conn):
         "The tool registry changed. Add the new tool to "
         "test_no_tool_records_a_connection_in_its_arguments."
     )
+
+
+# --- the preview must show the whole result -----------------------------------
+
+
+def test_a_seven_row_result_survives_the_preview(conn):
+    """The analyst reported seeing one message where Ray had found seven.
+
+    The trace preview was capped at 600 characters, which left a message table with
+    its header and a single row. The model was always given the full text; only the
+    evidence panel was truncated. Every one of the seven flagged finance messages must
+    now appear.
+    """
+    from conftest import FINANCE_FLAGGED
+    from ray.tools import messages as message_tools
+
+    result = message_tools.find_messages(
+        conn, department="finance", relative_window="this week", flagged_only=True
+    )
+    turn = trace.Turn(question="finance this week", model="test")
+    call = turn.record("find_messages", {"department": "finance"}, result)
+
+    for message_id in FINANCE_FLAGGED:
+        assert message_id[:8] in call.result_preview, (
+            f"{message_id[:8]} was cut from the preview; the cap is too low"
+        )
+    assert "…" not in call.result_preview[-3:], "the result was truncated"
+
+
+def test_the_markdown_transcript_shows_every_row(conn):
+    from conftest import FINANCE_FLAGGED
+    from ray.tools import messages as message_tools
+
+    result = message_tools.find_messages(
+        conn, department="finance", relative_window="this week", flagged_only=True
+    )
+    turn = trace.Turn(question="finance this week", model="test")
+    turn.record("find_messages", {"department": "finance"}, result)
+    turn.answer = "seven messages"
+
+    rendered = turn.to_markdown()
+    for message_id in FINANCE_FLAGGED:
+        assert message_id[:8] in rendered
+
+
+def test_a_pathological_result_is_still_capped():
+    """The cap must still exist, so one huge result cannot dominate a transcript."""
+    turn = trace.Turn(question="q", model="test")
+    huge = schemas.ToolResult(text="x" * (trace.MAX_PREVIEW * 3))
+    call = turn.record("find_messages", {}, huge)
+    assert len(call.result_preview) <= trace.MAX_PREVIEW
+    assert call.result_preview.endswith("…")
+
+
+def test_the_markdown_line_cap_reports_what_it_dropped():
+    turn = trace.Turn(question="q", model="test")
+    many = schemas.ToolResult(text="\n".join(f"row {n}" for n in range(trace.MAX_PREVIEW_LINES + 25)))
+    turn.record("find_messages", {}, many)
+    rendered = turn.to_markdown()
+    assert "more line(s) not shown" in rendered

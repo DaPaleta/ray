@@ -316,7 +316,9 @@
     border-radius: 6px;
     font-size: 0.78rem;
     overflow-x: auto;
-    max-height: 220px;
+    /* Tall enough to show a full seven-row result without scrolling, and still a
+       scroll box so one large result cannot dominate the panel. */
+    max-height: 560px;
     overflow-y: auto;
   }
 
