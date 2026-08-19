@@ -56,12 +56,6 @@ Name the stage or the file. A change to a decision goes to the ADR that owns it,
 a change to scope goes to `plan.md`. `AGENTS.md` section 4 holds the drift checklist
 that keeps each fact in one place.
 
-### How to request a change
-
-Name the stage or the file. A change to a decision goes to the ADR that owns it, and
-a change to scope goes to `plan.md`. `AGENTS.md` section 4 holds the drift checklist
-that keeps each fact in one place.
-
 ---
 
 ## Stage status
@@ -99,10 +93,11 @@ findings that changed the design:
 2. `sender-reputation` ran on 2 messages only, and `stage2` ran on 38. An absent
    analyzer result is not a benign analyzer result. Tool 4 reports the analyzers
    that did not run.
-3. Message `93bae03b` carries an empty `campaign_id`, although its `stage2`
-   reasoning names the acme-portal campaign in prose. A campaign join on
-   `campaign_id` alone loses this message. `domain_intel` joins on the shared
-   indicator instead.
+3. Message `93bae03b` carries no `campaign_id`, although its `stage2` reasoning
+   names the acme-portal campaign in prose. A campaign join on `campaign_id` alone
+   loses this message. `domain_intel` and `entity_graph` join on the shared
+   indicator instead. (An entry later in this log corrects how absence is stored:
+   the column is `NULL`, not an empty string.)
 4. Two campaign members, `d0e20c68` and `41fe8ce8`, are recorded `safe` on an
    unscanned link whose URL is byte-identical to a URL that 13 other messages
    carry with a malicious verdict. These are false negatives that Ray can find.
@@ -250,3 +245,46 @@ the question no longer applies.
 |---|---|---|
 | V1 | Ray runs Claude Haiku 4.5, not `gpt-5.6-luna` as the brief specifies. | ADR-005, risk R1, criterion 31. Disclosed in `NOTES.md`. |
 | V2 | The implementation estimate exceeds the brief's 3-hour budget. | `plan.md` section 5, risk R2. Three cut lines, and the analyst chooses where to stop. |
+
+### 2026-08-19 — Stages 2, 3, 5, and memory: two real defects found
+
+Built the foundation directly, then fanned out stages 3, 4, and 5 to three
+subagents in isolated git worktrees. Wrote the shared contracts first —
+`config.py`, `db.py`, `clock.py`, `schemas.py`, and `injection.py` — so the parallel
+work touched disjoint files and merged without conflict.
+
+**Defect 1: the grounding verifier could be defeated by its own input.** A citation
+identifier is parsed out of model-authored answer text, so it is not trusted input.
+The first implementation matched it with SQL `LIKE identifier || '%'`, where `_` and
+`%` are wildcards. `[msg:%]` therefore matched every row and verified as a real
+citation, and `[msg:________]` matched every 32-character id. The mechanism that
+exists to prove Ray is not hallucinating could have been forged by Ray. Fixed with
+`substr(column, 1, ?) = ?`, plus a guard rejecting any table not in
+`db.READ_TABLES`, plus `test_sql_wildcard_identifiers_do_not_forge_a_pass`. Recorded
+as query trap 5 in `plan.md` section 8.
+
+**Defect 2: absent values are `NULL`, not empty strings.** `plan.md` claimed in three
+places that `campaign_id` and `attack_type` hold `''` when absent, and that
+`IS NOT NULL` therefore fails to filter them. The opposite is true:
+
+```
+SELECT typeof(campaign_id), COUNT(*) FROM messages GROUP BY 1;   -- null 2274, text 14
+SELECT COUNT(*) FROM messages WHERE campaign_id = '';            -- 0
+```
+
+The same holds for `override_reason`, `overridden_by`, and `links.scan_verdict`. The
+claim came from reading sqlite3 CLI output, which renders `NULL` as blank. Any query
+written as `campaign_id = ''` would have silently returned zero rows. Corrected in
+`plan.md` 3.3 item 4 and section 8 trap 2, and in the campaign-correlator prompt.
+Queries now use `COALESCE(column, '') <> ''`, which is correct either way.
+
+Both defects were found by a subagent verifying its own work against the database
+rather than trusting the instructions it was given. That is `plan.md` section 9 item
+5 earning its place.
+
+**Also hardened `injection.py`** for two reported gaps: an inline role marker not at
+a line start, and a multi-word tool name in an exfiltration request. Still catches
+all 6 planted messages with 0 false positives across all 2288.
+
+**Worktree note:** the subagents did not commit inside their worktrees, so their
+files were copied across by hand. Later fan-outs instruct them to commit.
