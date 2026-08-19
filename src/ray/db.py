@@ -10,9 +10,16 @@ See docs/decisions/ADR-002-read-only-by-construction.md and IR3.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
+
+# The agent harness runs tools on worker threads, so a connection created on the
+# main thread is used from another one. `check_same_thread=False` permits that, and
+# this lock serializes access, because a sqlite3 connection is not safe for
+# concurrent use even when every statement is a read.
+_ACCESS = threading.RLock()
 
 # The one table Ray may write to. See ADR-003.
 MEMORY_TABLE = "agent_memory"
@@ -50,7 +57,7 @@ def connect_readonly(path: Path) -> sqlite3.Connection:
     A write raises sqlite3.OperationalError. Do not remove `mode=ro` (IR3).
     """
     _check(path)
-    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -62,7 +69,7 @@ def connect_memory(path: Path) -> sqlite3.Connection:
     See ADR-002 and ADR-003.
     """
     _check(path)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -74,11 +81,12 @@ def rows(
 
     Always pass values through `params`. Never format a value into `sql`.
     """
-    cur = conn.execute(sql, params)
-    try:
-        return [dict(r) for r in cur.fetchall()]
-    finally:
-        cur.close()
+    with _ACCESS:
+        cur = conn.execute(sql, params)
+        try:
+            return [dict(r) for r in cur.fetchall()]
+        finally:
+            cur.close()
 
 
 def one(
@@ -93,12 +101,13 @@ def scalar(
     conn: sqlite3.Connection, sql: str, params: Sequence[Any] | dict[str, Any] = ()
 ) -> Any:
     """Return the first column of the first row, or None."""
-    cur = conn.execute(sql, params)
-    try:
-        row = cur.fetchone()
-        return row[0] if row is not None else None
-    finally:
-        cur.close()
+    with _ACCESS:
+        cur = conn.execute(sql, params)
+        try:
+            row = cur.fetchone()
+            return row[0] if row is not None else None
+        finally:
+            cur.close()
 
 
 def primary_domain(conn: sqlite3.Connection) -> str:

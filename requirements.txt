@@ -19,3 +19,7 @@ pytest==9.1.1
 #
 # DSPy is deliberately absent. It runs at build time only, and the compiled prompt
 # ships as a static artifact in prompts/. See ADR-009.
+
+# Ray itself, installed in place. This makes `python -m ray` work from a clean
+# checkout without setting PYTHONPATH, so install-then-run stays two commands.
+-e .
