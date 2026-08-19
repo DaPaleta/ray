@@ -233,7 +233,12 @@ with the correct form, and 3 of the 41 do not belong.
    a thread order.
 3. Two links hold `is_scanned = 0` and an empty scan verdict. Four hold
    `unresolved`. Neither state is benign.
-4. `campaign_id` is an empty string, not `NULL`, when a message has no campaign.
+4. `campaign_id` is `NULL` when a message has no campaign, and `attack_type` is
+   `NULL` when a decision names no attack. `typeof(campaign_id)` returns `null` on
+   2274 rows and `text` on 14. The same holds for `decisions.override_reason` and
+   `decisions.overridden_by` (`null` on 2283, `text` on 5) and for
+   `links.scan_verdict` (`null` on 2, `text` on 1178). A query must therefore treat
+   `NULL` as absent, and `COALESCE(column, '') <> ''` is correct either way.
 5. Nine of the ten users named "Elena" or similar share a first name. A name
    lookup returns every match and asks the analyst to choose.
 
@@ -738,18 +743,23 @@ ran on 38, 2250 messages hold no remediation row, 2 links hold `is_scanned = 0`,
 and 4 hold `unresolved`. Report the absence. Never render an absence as a clean
 result.
 
-### The four query traps that cost the most
+### The five query traps that cost the most
 
-Section 2 holds the full account. These four break a careless query:
+Section 2 holds the full account. These five break a careless query:
 
 1. **Campaign attribution is incomplete.** Join on the shared indicator, not on
    `campaign_id`. A `campaign_id` join returns 14 messages where 15 is correct.
-2. **`campaign_id` is an empty string, not `NULL`.** `IS NOT NULL` does not filter
-   it.
+2. **An absent value is `NULL`, not an empty string.** See 3.3 item 4. A query
+   written as `campaign_id = ''` silently returns zero rows. Use
+   `COALESCE(column, '') <> ''`, which is correct for either storage form.
 3. **A relative window takes no upper bound.** See 2.7. Resolve it in code, and
    return the window used.
 4. **A verdict filter hides real threats.** Filter on verdict, attack type, and
    remediation state together. See 2.4.
+5. **A citation identifier is model-controlled text.** Never interpolate it into a
+   SQL `LIKE`. `_` and `%` are wildcards there, so `[msg:%]` would verify as a real
+   citation and forge a passing grounding check. `grounding.py` compares with
+   `substr(column, 1, ?) = ?` instead, and a test asserts that the forgery fails.
 
 ## 9. Definition of done
 

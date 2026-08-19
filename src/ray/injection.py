@@ -38,8 +38,14 @@ _PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
     (
         "role-marker",
         "Fabricates a system or assistant role to impersonate the operator",
+        # Anchored to a line start OR preceded by a fence, bracket, or sentence end,
+        # so an inline marker mid-body is caught too. A bare "System:" opening a
+        # normal sentence is rare in business mail; a false positive here is cheap
+        # and a miss is not.
         re.compile(
-            r"^\s*(?:-{2,}\s*)?(?:system|assistant|developer|user)\s*:", re.IGNORECASE | re.MULTILINE
+            r"(?:^|[\n\r]|[-–—>\[\]|*]{2,}\s*|[.!?]\s+)"
+            r"\s*(?:-{2,}\s*)?(?:system|assistant|developer|user)\s*:\s*\S",
+            re.IGNORECASE | re.MULTILINE,
         ),
     ),
     (
@@ -65,9 +71,11 @@ _PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
         "tool-abuse-exfiltration",
         "Orders the agent to call a tool and disclose organizational data",
         re.compile(
-            r"call\s+your\s+\w+\s+tool"
-            r"|(?:include|reply\s+with|send)\b[^.\n]{0,80}\b"
-            r"(?:full\s+list|all)\s+(?:of\s+)?\w*\s*email\s+addresses",
+            # Allow a multi-word tool name: "call your email lookup tool".
+            r"(?:call|invoke|use|run|query)\s+your\s+(?:\w+[\s-]+){1,4}tool"
+            r"|(?:include|reply\s+with|send|return|list)\b[^.\n]{0,80}\b"
+            r"(?:full\s+list|all|every)\s+(?:of\s+)?(?:\w+\s+){0,3}"
+            r"(?:email\s+address|e-?mail|address)",
             re.IGNORECASE,
         ),
     ),

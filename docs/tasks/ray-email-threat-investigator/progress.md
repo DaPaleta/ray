@@ -10,7 +10,8 @@
 *This section is the answer to "what is done, how do I run it, and how do I request a
 change". It is updated at the end of every stage.*
 
-**Last updated:** stage 2 complete.
+**Last updated:** stages 2, 3, 5, and the memory half of 6 are complete. **108 tests
+pass, and none needs an API key.**
 
 ### What works right now
 
@@ -19,21 +20,41 @@ change". It is updated at the end of every stage.*
 | Configuration and defaults | working | 5 tests |
 | Read-only database access | working | 4 tests, one per write verb |
 | Time-window resolution, both traps closed | working | 7 tests, including the 38-versus-41 trap |
-| Prompt-injection detection | working | Catches all 6 planted messages, 0 false positives across 2288 |
-| Shared tool contracts (citations, tables, fencing) | working | 5 tests |
-| The nine tools | not built | stages 3 and 4 |
-| The agent and the subagents | not built | stage 6 |
-| The portal | not built | stage 11 |
+| Prompt-injection detection | working | All 6 planted messages caught, **0 false positives across all 2288** |
+| Grounding verification | working | 23 tests, including citation forgery by SQL wildcard |
+| `find_messages`, `get_message`, `get_message_body` | working | 28 tests in `test_core_tools.py` |
+| `get_detection` | working | Same suite. Reports the analyzers that did **not** run |
+| Memory: `remember`, `recall`, provenance, confirm gate | working | 19 tests. The poison payload is refused |
+| `domain_intel`, `entity_graph`, `find_users` | in progress | stage 4, running in a worktree |
+| Agent, subagents, prompts, one-shot runner | written, untested | needs stage 4 to merge, then a live run |
+| Blast radius, watchlist sweep | not built | stage 9 |
+| DSPy compiled prompt | not built | stage 10 |
+| Portal, graph, trace rendering | `trace.py` works; portal not built | stage 11 |
 
 ### How to run what is built
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q                  # 30 tests, no key needed
+
+pytest -q                  # 108 tests, no key needed
+python -m ray --check      # readiness report, calls no model
 ```
 
-Nothing is runnable end to end yet. Ray needs stage 6 for that.
+Ray cannot yet answer a question end to end. That needs stage 4 merged and one live
+run. Once it can:
+
+```bash
+export OCEAN_ANTHROPIC_KEY=...
+python -m ray --ask "Anything targeting our finance team this week?"
+python -m ray                                  # the portal, after stage 11
+```
+
+### How to request a change
+
+Name the stage or the file. A change to a decision goes to the ADR that owns it, and
+a change to scope goes to `plan.md`. `AGENTS.md` section 4 holds the drift checklist
+that keeps each fact in one place.
 
 ### How to request a change
 
@@ -51,12 +72,12 @@ that keeps each fact in one place.
 |---|---|---|---|
 | — | 0 | Exploration and planning | **done** |
 | 1 | 1 | Bootstrap | **done** |
-| 1 | 2 | Data layer | not started |
-| 1 | 3 | Core tools | not started |
-| 1 | 4 | Intel tools | not started |
-| 1 | 5 | Injection and grounding | not started |
-| 1 | 6 | Agent and subagents | not started |
-| 1 | 7 | One-shot runner and transcripts | not started |
+| 1 | 2 | Data layer | **done** |
+| 1 | 3 | Core tools | **done** |
+| 1 | 4 | Intel tools | in progress |
+| 1 | 5 | Injection and grounding | **done** |
+| 1 | 6 | Agent, subagents, and memory | memory done; agent written, untested |
+| 1 | 7 | One-shot runner and transcripts | runner written; transcripts pending |
 | 1 | 8 | Write-up | not started |
 | 2 | 9 | Capability 5a and 5b | not started |
 | 2 | 10 | DSPy compile | not started |

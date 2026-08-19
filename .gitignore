@@ -28,3 +28,6 @@ __pycache__/
 
 # Test and build artifacts
 pytest.ini.bak
+
+# Agent worktrees
+.claude/worktrees/
