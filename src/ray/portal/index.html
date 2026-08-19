@@ -283,6 +283,50 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    align-items: center;
+    margin-bottom: .75rem;
+  }
+
+  .badges-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-right: .15rem;
+  }
+
+  .badge-specialist {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    border-radius: 999px;
+    padding: .12rem .6rem;
+    border: 1px solid currentColor;
+  }
+
+  .badge-specialist .badge-count {
+    font-weight: 400;
+    opacity: .75;
+  }
+
+  /* A distinct hue per specialist. Colour is a shortcut, never the only signal —
+     the badge always carries the specialist's name as text. */
+  .badge-auth { color: #b45309; background: #fef3c7; }
+  .badge-campaign { color: #6d28d9; background: #ede9fe; }
+  .badge-verdict { color: #0e7490; background: #cffafe; }
+  .badge-other { color: var(--muted); background: var(--panel-bg); }
+
+  @media (prefers-color-scheme: dark) {
+    .badge-auth { color: #fcd34d; background: #422006; }
+    .badge-campaign { color: #c4b5fd; background: #2e1065; }
+    .badge-verdict { color: #67e8f9; background: #083344; }
+  }
+
   .call-subagent {
     font-size: 0.78rem;
     color: var(--muted);
@@ -398,6 +442,7 @@
 
     <section id="panel-evidence" class="panel">
       <h2>Evidence — how Ray reached it</h2>
+      <div id="specialist-badges" class="badges hidden"></div>
       <div id="grounding-banner"></div>
       <div id="injection-banner"></div>
       <div id="evidence-log">
@@ -636,10 +681,60 @@
         currentAnswerEl.innerHTML = formatAnswerHtml(turn.answer || "");
       }
     }
+    renderSpecialists(turn.subagents_used || [], turn.tool_calls || []);
     renderGrounding(turn.grounding, turn.error);
     renderInjectionFindings(turn.injection_findings || []);
     renderEvidence(turn.tool_calls || []);
     renderGraph(turn.graph || {});
+  }
+
+  var SPECIALIST_CLASS = {
+    "auth-forensics": "badge-auth",
+    "campaign-correlator": "badge-campaign",
+    "verdict-adjudicator": "badge-verdict"
+  };
+
+  var SPECIALIST_ROLE = {
+    "auth-forensics": "judged whether the authentication supports the claimed sender",
+    "campaign-correlator": "established which messages belong to the same activity",
+    "verdict-adjudicator": "formed an independent verdict and compared it with the record"
+  };
+
+  // A badge per specialist that took part in this turn. Hidden when the main agent
+  // answered alone, so the badge means something when it does appear.
+  function renderSpecialists(used, calls) {
+    var box = document.getElementById("specialist-badges");
+    clear(box);
+    if (!used.length) {
+      box.classList.add("hidden");
+      return;
+    }
+    box.classList.remove("hidden");
+
+    var label = document.createElement("span");
+    label.className = "badges-label";
+    label.textContent = used.length === 1
+      ? "A specialist took part in this analysis:"
+      : "Specialists took part in this analysis:";
+    box.appendChild(label);
+
+    used.forEach(function (name) {
+      var count = calls.filter(function (c) { return c.subagent === name; }).length;
+      var badge = document.createElement("span");
+      badge.className = "badge-specialist " + (SPECIALIST_CLASS[name] || "badge-other");
+      // textContent throughout: a specialist name must never be treated as markup.
+      var nameEl = document.createElement("span");
+      nameEl.textContent = name;
+      badge.appendChild(nameEl);
+      if (count) {
+        var countEl = document.createElement("span");
+        countEl.className = "badge-count";
+        countEl.textContent = count === 1 ? "1 call" : count + " calls";
+        badge.appendChild(countEl);
+      }
+      badge.title = SPECIALIST_ROLE[name] || ("the " + name + " specialist took part");
+      box.appendChild(badge);
+    });
   }
 
   function renderGrounding(grounding, turnError) {

@@ -91,7 +91,7 @@ class Ray:
                 model=self._build_model(),
                 tools=list(self.registry.values()),
                 system_prompt=prompts.SYSTEM_PROMPT,
-                subagents=subagents.build_subagents(self.registry, self.compiled_prompt),
+                subagents=subagents.build_subagents(self.ctx, self.compiled_prompt),
             )
         return self._agent
 

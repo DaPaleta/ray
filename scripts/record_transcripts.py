@@ -58,6 +58,11 @@ def _run_turn(ray: Ray, question: str, *, auto_confirm: bool = False) -> None:
         if turn.regrounded:
             print("[grounding] the first answer failed and Ray was asked to re-cite")
 
+    if turn.subagents_used:
+        for name in turn.subagents_used:
+            count = sum(1 for c in turn.calls if c.subagent == name)
+            print(f"[specialist] {name} took part — {count} tool call(s)")
+
     for finding in turn.all_injection_findings:
         print(f"[injection] {finding.get('pattern')}: {finding.get('evidence', '')}")
 

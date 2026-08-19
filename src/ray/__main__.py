@@ -61,6 +61,10 @@ def command_ask(ray: Ray, question: str, out: Path | None, index: int | None) ->
         if grounding.get("uncited_warning"):
             print(f"[grounding] {grounding['uncited_warning']}")
 
+    for name in turn.subagents_used:
+        count = sum(1 for c in turn.calls if c.subagent == name)
+        print(f"[specialist] {name} took part — {count} tool call(s)")
+
     for finding in turn.all_injection_findings:
         print(f"[injection] {finding.get('pattern')}: {finding.get('evidence', '')}")
 

@@ -376,3 +376,41 @@ reports what it dropped.
 Both defects the analyst found were in the interface layer, and both were invisible to
 the test suite because the portal tests used a fake Ray. The lesson recorded here: a
 component test that fakes its collaborator proves the component, not the seam.
+
+### 2026-08-19 — Defect 5: the subagents were never attributed, and barely called
+
+The analyst asked for a badge showing when a specialist took part. Building it
+uncovered that the feature it was meant to display did not work.
+
+**Two separate faults.**
+
+1. **Attribution was never wired.** `_emit` never passed a `subagent` value, so
+   `ToolCall.subagent` was always None and `Turn.subagents_used` was always empty. The
+   badge would have rendered nothing, forever. The cause was structural:
+   `build_subagents` handed all three specialists the **same** tool objects from the
+   main agent's registry, so a call carried no trace of its caller.
+
+   Fixed by making attribution part of construction. `build_tools(ctx, subagent=...)`
+   now returns a set tagged with that specialist's name, and `build_subagents` builds
+   one tagged set per specialist. The main agent keeps the untagged set. A tool call
+   is now attributable by construction rather than by convention.
+
+2. **Haiku barely delegated.** None of the seven recorded transcripts contained a
+   single delegation. The system prompt named the three specialists but gave no
+   trigger for reaching them, and a small model does the work itself when it can.
+
+   The prompt now lists concrete triggers per specialist and states that a matching
+   trigger means `task` MUST be called before answering.
+
+**Result after both fixes**, on the headline scenario: `auth-forensics` 4 calls and
+`verdict-adjudicator` 4 calls, both attributed in the transcript and in the badge.
+
+**Honest limit.** Delegation is model-driven — `deepagents` exposes a `task` tool and
+the model decides. Haiku now delegates reliably on the verdict-adjudication trigger,
+but still answers a scope question ("who else got hit by the campaign?") directly
+instead of calling `campaign-correlator`. That is defensible, because `domain_intel`
+and `entity_graph` already return the full picture, but it is not what the prompt
+asks for. Tuning stopped here rather than chasing a small model further.
+
+This matters for ADR-009: a compiled adjudicator prompt is worth nothing if the
+adjudicator is never invoked. Before fix 2 it effectively was not.
