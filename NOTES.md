@@ -62,7 +62,7 @@ tiers on a threat-sweep question. Reproducible with
 `python scripts/record_transcripts.py all`.
 
 **Scale:** 11 tools, 5 specialists in 3 SOC tiers, 2 compiled prompts, 252 tests,
-6,407 lines of source and 2,899 of tests, 13 ADRs.
+6,407 lines of source and 2,899 of tests, 14 ADRs.
 
 ---
 
@@ -557,7 +557,7 @@ In the order I would actually do it.
 | Implementation log and every defect | same folder, `progress.md` |
 | **How the design was reached, honestly** | same folder, `conversation.md` |
 | **The SOC roster and the second compile** | `docs/tasks/ray-soc-role-subagents/` — plan, progress, conversation |
-| The thirteen decisions, each with alternatives | `docs/decisions/` |
+| The fourteen decisions, each with alternatives | `docs/decisions/` |
 | Rules for a coding agent in this repo | `AGENTS.md` |
 | Commands and environment | `README.md` |
 | Recorded runs | `transcripts/` |

@@ -13,7 +13,7 @@ Read these, in this order, before you change a file.
 | 2 | `docs/tasks/ray-email-threat-investigator/plan.md` | The design. **Section 8 holds the implementation rules IR1 to IR10 that bind your work. Section 9 holds the definition of done.** Section 2 records what the database actually contains. |
 | 3 | `docs/tasks/ray-email-threat-investigator/progress.md` | The delivered stages and the defects found. |
 | 4 | `docs/tasks/ray-soc-role-subagents/plan.md` | The current task. It amends IR7, extends IR8, and adds IR11. Its section 2 holds the five-specialist roster. |
-| 5 | `docs/decisions/` | The thirteen ADRs. Each rule in a `plan.md` section 8 cites the ADR behind it. |
+| 5 | `docs/decisions/` | The fourteen ADRs. Each rule in a `plan.md` section 8 cites the ADR behind it. |
 
 `docs/structure.md` owns the repository layout and the layer rules. `README.md`
 owns the commands, the environment variables, and the tech stack.
