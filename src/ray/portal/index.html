@@ -31,6 +31,8 @@
     --node-domain: #dc2626;
     --node-campaign: #7c3aed;
     --node-sender: #0891b2;
+    --tab-active-bg: #2563eb;
+    --tab-active-text: #ffffff;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -60,6 +62,8 @@
       --node-domain: #f87171;
       --node-campaign: #c084fc;
       --node-sender: #22d3ee;
+      --tab-active-bg: #6d9bff;
+      --tab-active-text: #0b1220;
     }
   }
 
@@ -70,36 +74,95 @@
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    line-height: 1.45;
+    line-height: 1.5;
   }
 
   header {
-    padding: 1rem 1.25rem;
+    padding: .75rem 1.25rem;
     border-bottom: 1px solid var(--border);
     background: var(--panel-bg);
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
   header h1 {
-    margin: 0 0 .35rem 0;
-    font-size: 1.35rem;
+    margin: 0;
+    font-size: 1.25rem;
+    white-space: nowrap;
   }
 
   header h1 .subtitle {
     font-weight: 400;
     color: var(--muted);
-    font-size: 0.9rem;
-    margin-left: .5rem;
+    font-size: 0.88rem;
+    margin-left: .4rem;
   }
 
   #startup-notes {
     display: flex;
     flex-wrap: wrap;
-    gap: .4rem .9rem;
-    font-size: 0.82rem;
+    gap: .3rem .8rem;
+    font-size: 0.8rem;
     color: var(--muted);
   }
 
-  main {
+  /* ---- tab bar ---- */
+
+  #tab-bar {
+    display: flex;
+    gap: 0;
+    padding: 0 1rem;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: .65rem 1.1rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--muted);
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* ---- tab pages ---- */
+
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  /* ---- two-column with side chat ---- */
+
+  .vis-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1rem;
+    padding: 1rem;
+    max-width: 1500px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  @media (max-width: 1000px) {
+    .vis-layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---- analyst tab layout (unchanged) ---- */
+
+  #page-analyst > main {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
@@ -109,8 +172,10 @@
   }
 
   @media (max-width: 900px) {
-    main { grid-template-columns: 1fr; }
+    #page-analyst > main { grid-template-columns: 1fr; }
   }
+
+  /* ---- panel ---- */
 
   .panel {
     background: var(--panel-bg);
@@ -120,22 +185,148 @@
     min-width: 0;
   }
 
-  .panel h2 {
-    margin-top: 0;
-    font-size: 1.05rem;
-  }
-
-  .panel h3 {
-    font-size: 0.9rem;
-    color: var(--muted);
-    margin-bottom: .4rem;
-  }
+  .panel > h2:first-child { margin-top: 0; font-size: 1.05rem; }
+  .panel h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: .4rem; }
 
   .hidden { display: none !important; }
-
   .muted { color: var(--muted); font-size: 0.88rem; }
 
-  /* --- conversation --- */
+  /* ---- doc content area ---- */
+
+  .doc-content {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .doc-content h1 { font-size: 1.3rem; margin-top: 0; }
+  .doc-content h2 { font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: .2rem; }
+  .doc-content h3 { font-size: 0.95rem; color: var(--muted); }
+  .doc-content pre { background: var(--code-bg); border-radius: 6px; padding: .6rem .8rem; overflow-x: auto; font-size: 0.8rem; }
+  .doc-content code { background: var(--code-bg); border-radius: 3px; padding: .1em .3em; font-size: 0.85em; }
+  .doc-content table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin: .75rem 0; }
+  .doc-content th, .doc-content td { border: 1px solid var(--border); padding: .35rem .5rem; text-align: left; vertical-align: top; }
+  .doc-content th { background: var(--bg); font-weight: 600; color: var(--muted); }
+  .doc-content ul, .doc-content ol { padding-left: 1.5rem; }
+  .doc-content li { margin-bottom: .25rem; }
+  .doc-content blockquote { border-left: 3px solid var(--accent); margin: .5rem 0; padding: .4rem .8rem; color: var(--muted); }
+  .doc-content hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+  .doc-section-divider {
+    border: none;
+    border-top: 2px solid var(--accent);
+    margin: 2rem 0 1.5rem;
+    opacity: .25;
+  }
+
+  .doc-file-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+    margin-bottom: .5rem;
+    display: block;
+  }
+
+  /* ---- side chat panel ---- */
+
+  .chat-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 6rem);
+  }
+
+  .chat-panel h2 { margin: 0; font-size: 1rem; }
+
+  .chat-disclaimer {
+    font-size: 0.75rem;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .35rem .5rem;
+    line-height: 1.4;
+  }
+
+  .chat-log {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    min-height: 120px;
+    max-height: 400px;
+  }
+
+  .chat-msg {
+    border-radius: 8px;
+    padding: .5rem .7rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .chat-msg-user {
+    background: var(--chip-bg);
+    color: var(--chip-text);
+    align-self: flex-end;
+    max-width: 90%;
+  }
+
+  .chat-msg-assistant {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    max-width: 100%;
+  }
+
+  .chat-msg-error {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border: 1px solid var(--danger-border);
+  }
+
+  .chat-input-row {
+    display: flex;
+    gap: .5rem;
+  }
+
+  .chat-input-row textarea {
+    flex: 1;
+    resize: vertical;
+    min-height: 2.2rem;
+    max-height: 6rem;
+    padding: .45rem .6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+
+  .chat-send {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: .45rem .8rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    align-self: flex-end;
+  }
+
+  .chat-send:disabled { opacity: .6; cursor: default; }
+
+  /* ---- conversation / ask ---- */
 
   #conversation-log {
     max-height: 420px;
@@ -148,25 +339,14 @@
 
   .qa-pair { border-bottom: 1px dashed var(--border); padding-bottom: .6rem; }
 
-  .question {
-    font-weight: 600;
-    margin-bottom: .3rem;
-  }
-
+  .question { font-weight: 600; margin-bottom: .3rem; }
   .question::before { content: "Analyst: "; color: var(--muted); font-weight: 400; }
-
   .answer::before { content: "Ray: "; color: var(--muted); }
-
   .answer { white-space: normal; }
-
   .pending-answer { color: var(--muted); font-style: italic; }
-
   .turn-error { color: var(--danger-text); }
 
-  #ask-form {
-    display: flex;
-    gap: .5rem;
-  }
+  #ask-form { display: flex; gap: .5rem; }
 
   #question-input {
     flex: 1;
@@ -205,11 +385,6 @@
     color: var(--muted);
   }
 
-  /* --- thinking indicator ---
-     A turn takes 30s or more, and the page has nothing to show until it ends.
-     The spinner says the page is alive, the clock says the turn is alive, and
-     the step line says the server is alive. See ADR-014. */
-
   .pending-line { display: flex; align-items: baseline; gap: .45rem; }
 
   .spinner {
@@ -225,36 +400,21 @@
 
   @keyframes ray-spin { to { transform: rotate(360deg); } }
 
-  .pending-elapsed {
-    font-variant-numeric: tabular-nums;
-    color: var(--muted);
-  }
+  .pending-elapsed { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .pending-step { margin-top: .2rem; padding-left: 1.25rem; color: var(--muted); font-size: 0.8rem; }
 
-  .pending-step {
-    margin-top: .2rem;
-    padding-left: 1.25rem;
-    color: var(--muted);
-    font-size: 0.8rem;
-  }
-
-  /* No poll has come back for a while. The turn may still be running, so this
-     warns and never claims the turn failed. */
   .pending.pending-stalled { color: var(--warn-text); }
-
   .pending.pending-stalled .spinner { border-top-color: var(--warn-text); }
-
   .pending-answer { animation: ray-pulse 1.6s ease-in-out infinite; }
 
   @keyframes ray-pulse { 50% { opacity: .45; } }
 
-  /* Motion is decoration here. The clock carries the same information without
-     it, so a reduced-motion reader loses nothing. */
   @media (prefers-reduced-motion: reduce) {
     .spinner { animation: none; opacity: .7; }
     .pending-answer { animation: none; }
   }
 
-  /* --- chips --- */
+  /* ---- chips ---- */
 
   .chip {
     display: inline-block;
@@ -271,7 +431,7 @@
 
   .chips { display: flex; flex-wrap: wrap; gap: .25rem; margin: .35rem 0; }
 
-  /* --- banners --- */
+  /* ---- banners ---- */
 
   .banner {
     border-radius: 8px;
@@ -290,7 +450,7 @@
   .banner-title { font-weight: 700; margin-bottom: .2rem; }
   .banner-detail { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; }
 
-  /* --- evidence --- */
+  /* ---- evidence ---- */
 
   #evidence-log {
     max-height: 520px;
@@ -327,24 +487,10 @@
     font-size: 0.72rem;
   }
 
-  .call-name {
-    font-weight: 700;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
+  .call-name { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-  .badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .4rem;
-    align-items: center;
-    margin-bottom: .75rem;
-  }
-
-  .badges-label {
-    font-size: 0.78rem;
-    color: var(--muted);
-    margin-right: .15rem;
-  }
+  .badges { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .75rem; }
+  .badges-label { font-size: 0.78rem; color: var(--muted); margin-right: .15rem; }
 
   .badge-specialist {
     display: inline-flex;
@@ -358,13 +504,8 @@
     border: 1px solid currentColor;
   }
 
-  .badge-specialist .badge-count {
-    font-weight: 400;
-    opacity: .75;
-  }
+  .badge-specialist .badge-count { font-weight: 400; opacity: .75; }
 
-  /* A distinct hue per specialist, one per SOC tier neighbour. Colour is a shortcut,
-     never the only signal — the badge always carries the specialist's name as text. */
   .badge-triage { color: #a16207; background: #fef9c3; }
   .badge-auth { color: #b45309; background: #fef3c7; }
   .badge-campaign { color: #6d28d9; background: #ede9fe; }
@@ -413,31 +554,26 @@
     border-radius: 6px;
     font-size: 0.78rem;
     overflow-x: auto;
-    /* Tall enough to show a full seven-row result without scrolling, and still a
-       scroll box so one large result cannot dominate the panel. */
     max-height: 560px;
     overflow-y: auto;
   }
 
-  /* --- graph --- */
+  /* ---- graph ---- */
 
   .scroll-x { overflow-x: auto; }
-
   .entity-graph { display: block; }
-
   .graph-node { stroke: var(--panel-bg); stroke-width: 2px; }
   .node-message { fill: var(--node-message); }
   .node-user { fill: var(--node-user); }
   .node-domain { fill: var(--node-domain); }
   .node-campaign { fill: var(--node-campaign); }
   .node-sender { fill: var(--node-sender); }
-
   .graph-label { fill: var(--text); font-size: 11px; font-family: ui-monospace, monospace; }
   .graph-col-label { fill: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
   .graph-edge { stroke: var(--muted); stroke-width: 1.2px; opacity: .7; }
   .graph-arrow { fill: var(--muted); opacity: .7; }
 
-  /* --- memory --- */
+  /* ---- memory ---- */
 
   table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
   th, td { border-bottom: 1px solid var(--border); padding: .3rem .4rem; text-align: left; vertical-align: top; }
@@ -454,17 +590,68 @@
     margin-bottom: .6rem;
   }
 
-  .proposal-kind {
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    margin-bottom: .2rem;
-  }
-
+  .proposal-kind { font-weight: 700; text-transform: uppercase; font-size: 0.75rem; margin-bottom: .2rem; }
   .proposal-actions { margin-top: .5rem; display: flex; gap: .5rem; }
 
   .btn-confirm { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok-text); font-weight: 600; }
   .btn-reject { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+
+  /* ---- arch diagram (overview tab) ---- */
+
+  .arch-svg { width: 100%; max-width: 700px; display: block; margin: 1rem auto; }
+
+  /* ---- transcript card (execution tab) ---- */
+
+  .tx-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    margin-bottom: .75rem;
+    background: var(--bg);
+  }
+
+  .tx-card h3 { margin: 0 0 .3rem; font-size: 0.95rem; }
+  .tx-cap-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0 .55rem;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    margin-bottom: .4rem;
+  }
+  .tx-excerpt { font-size: 0.85rem; color: var(--muted); white-space: pre-wrap; }
+
+  .tx-card-interactive { padding: 0; overflow: hidden; }
+
+  .tx-card-header {
+    padding: .75rem 1rem;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .tx-card-header:hover { background: var(--bg); }
+  .tx-card-header:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .tx-chevron {
+    font-size: 0.85rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .tx-detail {
+    border-top: 1px solid var(--border);
+    padding: 1rem 1.25rem 1.25rem;
+    font-size: 0.88rem;
+  }
+
+  .tx-detail h1, .tx-detail h2 { font-size: 1rem; }
+  .tx-detail h3 { font-size: 0.9rem; }
+  .tx-detail pre { background: var(--code-bg); border-radius: 6px; padding: .5rem .7rem; overflow-x: auto; font-size: 0.78rem; }
+  .tx-detail code { background: var(--code-bg); border-radius: 3px; padding: .1em .3em; font-size: 0.82em; }
+  .tx-detail table { border-collapse: collapse; width: 100%; font-size: 0.82rem; margin: .5rem 0; }
+  .tx-detail th, .tx-detail td { border: 1px solid var(--border); padding: .3rem .45rem; text-align: left; }
+  .tx-detail th { background: var(--bg); }
 
   footer {
     padding: 1rem 1.25rem 2rem;
@@ -476,51 +663,134 @@
 </head>
 <body>
   <header>
-    <h1>Ray <span class="subtitle">Email-threat investigator — analyst portal</span></h1>
+    <h1>Ray <span class="subtitle">Email-threat investigator</span></h1>
     <div id="startup-notes"></div>
   </header>
 
-  <main>
-    <section id="panel-conversation" class="panel">
-      <h2>Conversation</h2>
-      <div id="conversation-log"></div>
-      <form id="ask-form">
-        <textarea id="question-input" rows="2" placeholder="Ask Ray about the corpus…"></textarea>
-        <button type="submit" id="ask-button">Ask</button>
-      </form>
-      <div id="pending-indicator" class="pending hidden" role="status" aria-live="polite">
-        <div class="pending-line">
-          <span class="spinner" aria-hidden="true"></span>
-          <span id="pending-text">Ray is investigating…</span>
-          <span id="pending-elapsed" class="pending-elapsed"></span>
+  <nav id="tab-bar">
+    <button class="tab-btn" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="execution">Execution</button>
+    <button class="tab-btn" data-tab="decisions">Conversations &amp; Decisions</button>
+    <button class="tab-btn" data-tab="tech">Deep Tech Dive</button>
+    <button class="tab-btn" data-tab="analyst">Analyst</button>
+  </nav>
+
+  <!-- ===== OVERVIEW TAB ===== -->
+  <div id="page-overview" class="tab-page">
+    <div class="vis-layout">
+      <div class="doc-content" id="overview-content">
+        <p class="muted">Loading…</p>
+      </div>
+      <aside class="chat-panel" id="chat-overview">
+        <h2>Ask about the overview</h2>
+        <div class="chat-disclaimer">Docs assistant — answers from repo files, no database citation check. See ADR-015.</div>
+        <div class="chat-log" id="chat-log-overview"></div>
+        <div class="chat-input-row">
+          <textarea id="chat-input-overview" rows="2" placeholder="e.g. Why are typed tools better than raw SQL?"></textarea>
+          <button class="chat-send" data-chat="overview">Ask</button>
         </div>
-        <div id="pending-step" class="pending-step"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ===== EXECUTION TAB ===== -->
+  <div id="page-execution" class="tab-page">
+    <div class="vis-layout">
+      <div id="execution-content">
+        <p class="muted" style="padding:1rem">Loading transcripts…</p>
       </div>
-    </section>
+      <aside class="chat-panel" id="chat-execution">
+        <h2>Ask about execution</h2>
+        <div class="chat-disclaimer">Docs assistant — answers from transcript files, no database citation check.</div>
+        <div class="chat-log" id="chat-log-execution"></div>
+        <div class="chat-input-row">
+          <textarea id="chat-input-execution" rows="2" placeholder="e.g. How did Ray handle the prompt-injection attempt?"></textarea>
+          <button class="chat-send" data-chat="execution">Ask</button>
+        </div>
+      </aside>
+    </div>
+  </div>
 
-    <section id="panel-evidence" class="panel">
-      <h2>Evidence — how Ray reached it</h2>
-      <div id="specialist-badges" class="badges hidden"></div>
-      <div id="grounding-banner"></div>
-      <div id="injection-banner"></div>
-      <div id="evidence-log">
-        <p class="muted">Ask a question to see the tool-call log.</p>
+  <!-- ===== CONVERSATIONS & DECISIONS TAB ===== -->
+  <div id="page-decisions" class="tab-page">
+    <div class="vis-layout">
+      <div class="doc-content" id="decisions-content">
+        <p class="muted">Loading…</p>
       </div>
-    </section>
+      <aside class="chat-panel" id="chat-decisions">
+        <h2>Ask about decisions</h2>
+        <div class="chat-disclaimer">Docs assistant — answers from conversation logs and ADRs, no database citation check.</div>
+        <div class="chat-log" id="chat-log-decisions"></div>
+        <div class="chat-input-row">
+          <textarea id="chat-input-decisions" rows="2" placeholder="e.g. Why was memory confirmation needed?"></textarea>
+          <button class="chat-send" data-chat="decisions">Ask</button>
+        </div>
+      </aside>
+    </div>
+  </div>
 
-    <section id="panel-graph" class="panel hidden">
-      <h2>Entity graph</h2>
-      <div id="graph-container" class="scroll-x"></div>
-    </section>
+  <!-- ===== DEEP TECH DIVE TAB ===== -->
+  <div id="page-tech" class="tab-page">
+    <div class="vis-layout">
+      <div class="doc-content" id="tech-content">
+        <p class="muted">Loading…</p>
+      </div>
+      <aside class="chat-panel" id="chat-tech">
+        <h2>Ask about the tech</h2>
+        <div class="chat-disclaimer">Docs assistant — answers from NOTES.md, AGENTS.md, and ADRs, no database citation check.</div>
+        <div class="chat-log" id="chat-log-tech"></div>
+        <div class="chat-input-row">
+          <textarea id="chat-input-tech" rows="2" placeholder="e.g. Why is DSPy run offline and not at request time?"></textarea>
+          <button class="chat-send" data-chat="tech">Ask</button>
+        </div>
+      </aside>
+    </div>
+  </div>
 
-    <section id="panel-memory" class="panel">
-      <h2>Memory</h2>
-      <h3>Stored records</h3>
-      <div id="memory-records"></div>
-      <h3>Pending proposals</h3>
-      <div id="memory-pending"></div>
-    </section>
-  </main>
+  <!-- ===== ANALYST TAB (existing panels) ===== -->
+  <div id="page-analyst" class="tab-page">
+    <main>
+      <section id="panel-conversation" class="panel">
+        <h2>Conversation</h2>
+        <div id="conversation-log"></div>
+        <form id="ask-form">
+          <textarea id="question-input" rows="2" placeholder="Ask Ray about the corpus…"></textarea>
+          <button type="submit" id="ask-button">Ask</button>
+        </form>
+        <div id="pending-indicator" class="pending hidden" role="status" aria-live="polite">
+          <div class="pending-line">
+            <span class="spinner" aria-hidden="true"></span>
+            <span id="pending-text">Ray is investigating…</span>
+            <span id="pending-elapsed" class="pending-elapsed"></span>
+          </div>
+          <div id="pending-step" class="pending-step"></div>
+        </div>
+      </section>
+
+      <section id="panel-evidence" class="panel">
+        <h2>Evidence — how Ray reached it</h2>
+        <div id="specialist-badges" class="badges hidden"></div>
+        <div id="grounding-banner"></div>
+        <div id="injection-banner"></div>
+        <div id="evidence-log">
+          <p class="muted">Ask a question to see the tool-call log.</p>
+        </div>
+      </section>
+
+      <section id="panel-graph" class="panel hidden">
+        <h2>Entity graph</h2>
+        <div id="graph-container" class="scroll-x"></div>
+      </section>
+
+      <section id="panel-memory" class="panel">
+        <h2>Memory</h2>
+        <h3>Stored records</h3>
+        <div id="memory-records"></div>
+        <h3>Pending proposals</h3>
+        <div id="memory-pending"></div>
+      </section>
+    </main>
+  </div>
 
   <footer>
     <a id="transcript-link" href="/api/transcript" target="_blank" rel="noopener">Open the full session transcript (markdown)</a>
@@ -530,10 +800,7 @@
 (function () {
   "use strict";
 
-  // --- escaping -------------------------------------------------------------
-  // Ray's answer can quote attacker-controlled email text. Every dynamic string
-  // that becomes markup goes through this first. Everywhere else, dynamic text
-  // is set via textContent, which never interprets its input as markup at all.
+  // --- escaping ---------------------------------------------------------------
 
   function escapeHtml(str) {
     return String(str == null ? "" : str)
@@ -544,8 +811,6 @@
       .replace(/'/g, "&#39;");
   }
 
-  // Turns an already-escaped answer into markup: **bold**, [kind:id] citation
-  // chips, and line breaks. Never call this on unescaped text.
   function formatAnswerHtml(rawText) {
     var safe = escapeHtml(rawText);
     safe = safe.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
@@ -563,6 +828,733 @@
     chip.className = "chip";
     chip.textContent = text;
     return chip;
+  }
+
+  // --- compact markdown renderer (no CDN) -------------------------------------
+  // Supports: h1-h4, **bold**, `code`, ``` fenced code blocks, tables (|...|),
+  // bullet lists (- / *), numbered lists, blockquote (>), hr (---), paragraphs.
+  // Called only on server-supplied doc text — never on attacker-controlled content.
+
+  function renderMarkdown(md) {
+    var lines = md.split("\n");
+    var html = "";
+    var i = 0;
+    var inList = false;
+    var listTag = "ul";
+    var inTable = false;
+    var tableHeader = false;
+
+    function closeList() {
+      if (inList) { html += "</" + listTag + ">"; inList = false; }
+    }
+    function closeTable() {
+      if (inTable) { html += "</tbody></table>"; inTable = false; tableHeader = false; }
+    }
+
+    function inlineFormat(text) {
+      // Escape first
+      var s = escapeHtml(text);
+      // Bold **text**
+      s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      // Italic *text* (single star, not followed by another)
+      s = s.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
+      // Inline code `code`
+      s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+      // Links [text](url) — only relative or http links
+      s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      return s;
+    }
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      // Fenced code block
+      if (/^```/.test(line)) {
+        closeList(); closeTable();
+        var lang = line.slice(3).trim();
+        var code = "";
+        i++;
+        while (i < lines.length && !/^```/.test(lines[i])) {
+          code += escapeHtml(lines[i]) + "\n";
+          i++;
+        }
+        html += "<pre><code" + (lang ? ' class="language-' + lang + '"' : "") + ">" + code + "</code></pre>";
+        i++;
+        continue;
+      }
+
+      // Headings
+      var hm = line.match(/^(#{1,4})\s+(.*)/);
+      if (hm) {
+        closeList(); closeTable();
+        var level = hm[1].length;
+        html += "<h" + level + ">" + inlineFormat(hm[2]) + "</h" + level + ">";
+        i++;
+        continue;
+      }
+
+      // HR
+      if (/^(-{3,}|\*{3,})$/.test(line.trim())) {
+        closeList(); closeTable();
+        html += "<hr>";
+        i++;
+        continue;
+      }
+
+      // Table row
+      if (/^\|/.test(line)) {
+        closeList();
+        if (!inTable) {
+          html += '<table><thead><tr>';
+          inTable = true;
+          tableHeader = true;
+          // Parse header row
+          var cells = line.split("|").slice(1, -1);
+          cells.forEach(function(c) {
+            html += "<th>" + inlineFormat(c.trim()) + "</th>";
+          });
+          html += "</tr></thead><tbody>";
+          i++;
+          // Skip separator row (|---|---|)
+          if (i < lines.length && /^\|[\s\-:|]+\|/.test(lines[i])) i++;
+          continue;
+        } else {
+          html += "<tr>";
+          var tcells = line.split("|").slice(1, -1);
+          tcells.forEach(function(c) {
+            html += "<td>" + inlineFormat(c.trim()) + "</td>";
+          });
+          html += "</tr>";
+          i++;
+          continue;
+        }
+      }
+
+      // Blockquote
+      if (/^>/.test(line)) {
+        closeList(); closeTable();
+        html += "<blockquote>" + inlineFormat(line.slice(1).trim()) + "</blockquote>";
+        i++;
+        continue;
+      }
+
+      // Bullet list
+      var bm = line.match(/^(\s*)([-*])\s+(.*)/);
+      if (bm) {
+        closeTable();
+        if (!inList || listTag !== "ul") {
+          closeList();
+          html += "<ul>"; inList = true; listTag = "ul";
+        }
+        html += "<li>" + inlineFormat(bm[3]) + "</li>";
+        i++;
+        continue;
+      }
+
+      // Numbered list
+      var nm = line.match(/^\d+\.\s+(.*)/);
+      if (nm) {
+        closeTable();
+        if (!inList || listTag !== "ol") {
+          closeList();
+          html += "<ol>"; inList = true; listTag = "ol";
+        }
+        html += "<li>" + inlineFormat(nm[1]) + "</li>";
+        i++;
+        continue;
+      }
+
+      // Empty line
+      if (line.trim() === "") {
+        closeList(); closeTable();
+        html += "";
+        i++;
+        continue;
+      }
+
+      // Paragraph
+      closeList(); closeTable();
+      html += "<p>" + inlineFormat(line) + "</p>";
+      i++;
+    }
+
+    closeList(); closeTable();
+    return html;
+  }
+
+  // --- tab navigation ---------------------------------------------------------
+
+  var tabs = ["overview", "execution", "decisions", "tech", "analyst"];
+  var loaded = {};
+
+  function activateTab(name) {
+    tabs.forEach(function(t) {
+      var btn = document.querySelector('[data-tab="' + t + '"]');
+      var page = document.getElementById("page-" + t);
+      if (btn) btn.classList.toggle("active", t === name);
+      if (page) page.classList.toggle("active", t === name);
+    });
+    if (!loaded[name]) {
+      loaded[name] = true;
+      if (name === "overview") loadDocTab("overview", "overview-content", buildOverview);
+      else if (name === "execution") loadDocTab("execution", "execution-content", buildExecution);
+      else if (name === "decisions") loadDocTab("decisions", "decisions-content", buildDecisions);
+      else if (name === "tech") loadDocTab("tech", "tech-content", buildTech);
+    }
+  }
+
+  document.querySelectorAll(".tab-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      activateTab(btn.getAttribute("data-tab"));
+    });
+  });
+
+  // --- doc loading ------------------------------------------------------------
+
+  async function loadDocTab(key, containerId, buildFn) {
+    var container = document.getElementById(containerId);
+    try {
+      var res = await fetch("/api/docs/" + key, { cache: "no-store" });
+      var text = await res.text();
+      buildFn(container, text);
+    } catch (err) {
+      if (container) container.innerHTML = "<p class='muted'>Could not load docs: " + escapeHtml(String(err)) + "</p>";
+    }
+  }
+
+  // Splits the concatenated doc text on the "# --- path ---" markers
+  function splitDocSections(text) {
+    var sections = [];
+    var re = /^# --- (.+?) ---$/m;
+    var parts = text.split(re);
+    // parts = [pre, path1, content1, path2, content2, ...]
+    for (var i = 1; i < parts.length; i += 2) {
+      sections.push({ path: parts[i].trim(), content: parts[i + 1] || "" });
+    }
+    return sections;
+  }
+
+  // --- overview builder -------------------------------------------------------
+
+  function buildOverview(container, text) {
+    var html = "";
+
+    // Architecture diagram (inline SVG, uses CSS vars for colours)
+    html += '<h2>Architecture</h2>';
+    html += '<p>Ray is a security investigation agent that answers natural-language questions from a static email corpus database. It uses typed tools (no raw SQL), five specialized subagents arranged in three SOC tiers, and a grounding verifier that re-checks every citation after an answer is written.</p>';
+
+    html += buildArchDiagram();
+
+    html += '<h2>Core capabilities</h2>';
+    html += '<table><thead><tr><th>#</th><th>Capability</th><th>Example question</th></tr></thead><tbody>';
+    var caps = [
+      ["1", "Threat sweep", "Anything targeting our finance team this week?"],
+      ["2", "Verdict explanation", "Why is the message with subject &#x27;Action required: mailbox storage full&#x27; malicious?"],
+      ["3", "Indicator lookup", "I got an EDR alert about acme-portal.co. What do we know?"],
+      ["4", "Organizational memory", "Our CFO is Rachel Adler and she never sends wire requests over email. Remember that."],
+      ["5a", "Blast-radius report", "Who else received this, which messages are still in an inbox, and what should I do?"],
+      ["5b", "Watchlist loop", "Ray proposes a watch record from analyst commentary; a later sweep applies it."],
+    ];
+    caps.forEach(function(r) {
+      html += "<tr><td><strong>" + r[0] + "</strong></td><td>" + r[1] + "</td><td class='muted' style='font-size:0.8rem'>" + r[2] + "</td></tr>";
+    });
+    html += '</tbody></table>';
+
+    html += '<h2>Design principles</h2>';
+    html += '<ol>';
+    var principles = [
+      "The database is the only source of truth. Ray states a fact only when a row supports the fact.",
+      "Ray reports the limits of the data. When no row supports an answer, Ray says it does not know.",
+      "Body text is attacker-controlled. Ray treats body text as evidence, never as an instruction.",
+      "Ray reads the database. Ray does not change the database (except the memory table).",
+      "Ray may disagree with a recorded verdict. Ray states the disagreement and gives the evidence.",
+      "Ray answers at the altitude of the question. Conclusion first, then evidence.",
+    ];
+    principles.forEach(function(p) { html += "<li>" + p + "</li>"; });
+    html += "</ol>";
+
+    html += '<h2>Scale</h2>';
+    html += '<p>11 tools &nbsp;·&nbsp; 5 specialists in 3 SOC tiers &nbsp;·&nbsp; 2 compiled prompts (DSPy) &nbsp;·&nbsp; 252 tests &nbsp;·&nbsp; 15 ADRs &nbsp;·&nbsp; 8 recorded transcripts &nbsp;·&nbsp; 2288-message corpus</p>';
+
+    // Append rendered docs (vision.md and key ADRs)
+    var sections = splitDocSections(text);
+    sections.forEach(function(s) {
+      if (s.path.indexOf("vision.md") >= 0) {
+        html += '<hr class="doc-section-divider"><span class="doc-file-label">' + escapeHtml(s.path) + '</span>';
+        html += renderMarkdown(s.content);
+      }
+    });
+
+    container.innerHTML = html;
+  }
+
+  function buildArchDiagram() {
+    // Inline SVG architecture diagram using CSS variable colours via currentColor
+    // Five layers: Analyst → Portal → Agent → Subagents + Tools → Database
+    return `<svg class="arch-svg" viewBox="0 0 660 340" role="img" aria-label="Ray architecture diagram">
+<style>
+  .arch-box { fill: var(--panel-bg); stroke: var(--border); stroke-width: 1.5; rx: 6; }
+  .arch-accent { fill: var(--chip-bg); stroke: var(--accent); stroke-width: 1.5; }
+  .arch-db { fill: var(--ok-bg); stroke: var(--ok-border); stroke-width: 1.5; }
+  .arch-sub { fill: var(--warn-bg); stroke: var(--warn-border); stroke-width: 1; }
+  .arch-tool { fill: var(--code-bg); stroke: var(--border); stroke-width: 1; }
+  .arch-arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arch-arrow); }
+  .arch-text { fill: var(--text); font-family: -apple-system, sans-serif; font-size: 12px; text-anchor: middle; dominant-baseline: central; }
+  .arch-small { fill: var(--muted); font-size: 10px; text-anchor: middle; dominant-baseline: central; }
+  .arch-label { fill: var(--muted); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; text-anchor: middle; }
+</style>
+<defs>
+  <marker id="arch-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--muted)" opacity=".7"/>
+  </marker>
+</defs>
+
+<!-- Analyst -->
+<rect x="270" y="10" width="120" height="38" rx="6" class="arch-accent"/>
+<text x="330" y="29" class="arch-text" font-weight="700">Analyst</text>
+
+<!-- Portal -->
+<rect x="220" y="78" width="220" height="38" rx="6" class="arch-box"/>
+<text x="330" y="97" class="arch-text">Portal (FastAPI + HTML)</text>
+
+<!-- Agent -->
+<rect x="220" y="146" width="220" height="38" rx="6" class="arch-accent"/>
+<text x="330" y="165" class="arch-text" font-weight="700">Ray Agent (deepagents)</text>
+
+<!-- Subagents row -->
+<rect x="20" y="218" width="108" height="32" rx="5" class="arch-sub"/>
+<text x="74" y="234" class="arch-small">triage-officer</text>
+
+<rect x="138" y="218" width="108" height="32" rx="5" class="arch-sub"/>
+<text x="192" y="234" class="arch-small">auth-forensics</text>
+
+<rect x="256" y="218" width="108" height="32" rx="5" class="arch-sub"/>
+<text x="310" y="234" class="arch-small">campaign-correlator</text>
+
+<rect x="374" y="218" width="108" height="32" rx="5" class="arch-sub"/>
+<text x="428" y="234" class="arch-small">verdict-reviewer</text>
+
+<rect x="492" y="218" width="120" height="32" rx="5" class="arch-sub"/>
+<text x="552" y="234" class="arch-small">incident-responder</text>
+
+<!-- Tools row -->
+<rect x="90" y="284" width="140" height="28" rx="5" class="arch-tool"/>
+<text x="160" y="298" class="arch-small">11 typed tools (SQL)</text>
+
+<rect x="250" y="284" width="120" height="28" rx="5" class="arch-tool"/>
+<text x="310" y="298" class="arch-small">grounding verifier</text>
+
+<rect x="390" y="284" width="120" height="28" rx="5" class="arch-tool"/>
+<text x="450" y="298" class="arch-small">injection detector</text>
+
+<!-- Arrows -->
+<line x1="330" y1="48" x2="330" y2="76" class="arch-arrow"/>
+<line x1="330" y1="116" x2="330" y2="144" class="arch-arrow"/>
+<line x1="330" y1="184" x2="330" y2="216" class="arch-arrow"/>
+<line x1="330" y1="250" x2="160" y2="282" class="arch-arrow"/>
+<line x1="330" y1="250" x2="310" y2="282" class="arch-arrow"/>
+<line x1="330" y1="250" x2="450" y2="282" class="arch-arrow"/>
+
+<!-- Labels -->
+<text x="330" y="64" class="arch-label">question / answer</text>
+<text x="330" y="132" class="arch-label">HTTP (ask / state)</text>
+<text x="330" y="202" class="arch-label">task delegation</text>
+</svg>`;
+  }
+
+  // --- execution builder ------------------------------------------------------
+
+  var TRANSCRIPT_META = [
+    { file: "01-finance-team-this-week.md", cap: "Capability 1 — Threat sweep", title: "Finance team threat sweep", required: true },
+    { file: "02-why-is-the-mailbox-message-malicious.md", cap: "Capability 2 — Verdict explanation", title: "Why is the mailbox message malicious?", required: true },
+    { file: "03-acme-portal-indicator-and-what-ray-cannot-know.md", cap: "Capability 3 — Indicator lookup", title: "Acme-portal indicator + what Ray cannot know", required: true },
+    { file: "04-cfo-policy-remembered-then-applied.md", cap: "Capability 4 — Organizational memory", title: "CFO policy remembered then applied", required: true },
+    { file: "05-blast-radius-and-remediation.md", cap: "Addition 5a — Blast radius", title: "Blast radius and remediation recommendation", required: false },
+    { file: "06-prompt-injection-reported-not-obeyed.md", cap: "Addition — Prompt injection defence", title: "Prompt-injection attempt reported, not obeyed", required: false },
+    { file: "07-watchlist-learned-from-analyst-overrides.md", cap: "Addition 5b — Watchlist loop", title: "Watchlist learned from analyst overrides", required: false },
+    { file: "08-soc-workflow-triage-then-response.md", cap: "Addition — Full SOC workflow", title: "SOC workflow: triage → investigation → response in one turn", required: false },
+  ];
+
+  function buildExecution(container, text) {
+    var sections = splitDocSections(text);
+    var byFile = {};
+    sections.forEach(function(s) {
+      var fname = s.path.split("/").pop();
+      byFile[fname] = s.content;
+    });
+
+    var wrap = document.createElement("div");
+    wrap.className = "doc-content";
+
+    var h2 = document.createElement("h2");
+    h2.textContent = "Recorded transcripts";
+    wrap.appendChild(h2);
+
+    var intro = document.createElement("p");
+    intro.textContent = "Click any scenario to expand the full transcript. Four required capabilities + four additions beyond the brief.";
+    wrap.appendChild(intro);
+
+    TRANSCRIPT_META.forEach(function(meta, idx) {
+      var content = byFile[meta.file] || "";
+      var questionMatch = content.match(/(?:^|\n)## (.+)/);
+      var question = questionMatch ? questionMatch[1] : "";
+      var excerptMatch = content.match(/\n\n([^#\n][^\n]{20,})/);
+      var excerpt = excerptMatch ? excerptMatch[1].slice(0, 220) : content.slice(0, 220);
+
+      var card = document.createElement("div");
+      card.className = "tx-card tx-card-interactive";
+
+      var header = document.createElement("div");
+      header.className = "tx-card-header";
+      header.setAttribute("role", "button");
+      header.setAttribute("aria-expanded", "false");
+      header.setAttribute("tabindex", "0");
+
+      var badge = document.createElement("div");
+      badge.className = "tx-cap-badge";
+      badge.textContent = meta.cap + (meta.required ? "" : " ✦");
+      header.appendChild(badge);
+
+      var titleRow = document.createElement("div");
+      titleRow.style.cssText = "display:flex;align-items:baseline;gap:.5rem;justify-content:space-between";
+
+      var h3 = document.createElement("h3");
+      h3.style.margin = "0";
+      h3.textContent = meta.title;
+      titleRow.appendChild(h3);
+
+      var chevron = document.createElement("span");
+      chevron.className = "tx-chevron";
+      chevron.textContent = "▸";
+      titleRow.appendChild(chevron);
+      header.appendChild(titleRow);
+
+      if (question) {
+        var qp = document.createElement("p");
+        qp.style.cssText = "font-size:.88rem;margin:.2rem 0 .3rem";
+        var qb = document.createElement("strong");
+        qb.textContent = "Question: ";
+        qp.appendChild(qb);
+        qp.appendChild(document.createTextNode(question));
+        header.appendChild(qp);
+      }
+
+      if (excerpt) {
+        var ex = document.createElement("div");
+        ex.className = "tx-excerpt";
+        ex.textContent = excerpt.trim() + "…";
+        header.appendChild(ex);
+      }
+
+      card.appendChild(header);
+
+      // Detail panel — hidden until clicked
+      var detail = document.createElement("div");
+      detail.className = "tx-detail hidden";
+      if (content) {
+        detail.innerHTML = renderMarkdown(content);
+      } else {
+        detail.innerHTML = "<p class='muted'>Transcript not available.</p>";
+      }
+      card.appendChild(detail);
+
+      header.addEventListener("click", function() {
+        var open = !detail.classList.contains("hidden");
+        detail.classList.toggle("hidden", open);
+        chevron.textContent = open ? "▸" : "▾";
+        header.setAttribute("aria-expanded", String(!open));
+      });
+      header.addEventListener("keydown", function(e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); header.click(); }
+      });
+
+      wrap.appendChild(card);
+    });
+
+    var note = document.createElement("p");
+    note.className = "muted";
+    note.style.fontSize = ".8rem";
+    note.innerHTML = "✦ = capability added beyond the brief. Reproducible with <code>python scripts/record_transcripts.py all</code>.";
+    wrap.appendChild(note);
+
+    clear(container);
+    container.appendChild(wrap);
+  }
+
+  // --- decisions builder ------------------------------------------------------
+
+  // Extract the text of a named section (## Section) from markdown content.
+  function extractSection(md, sectionName) {
+    var re = new RegExp("##\\s+" + sectionName + "\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)", "i");
+    var m = md.match(re);
+    return m ? m[1].trim() : "";
+  }
+
+  // Extract the ADR number and title from a heading line like "# ADR-007: Title"
+  function parseAdrTitle(md) {
+    var m = md.match(/^#\s+(ADR-\d+[^:\n]*(?::\s*([^\n]+))?)/m);
+    if (!m) return { num: "", title: "" };
+    var full = m[1].trim();
+    var colon = full.indexOf(":");
+    if (colon >= 0) return { num: full.slice(0, colon).trim(), title: full.slice(colon + 1).trim() };
+    return { num: full, title: "" };
+  }
+
+  function buildDecisions(container, text) {
+    var sections = splitDocSections(text);
+    var html = "";
+
+    // --- TL;DR summary -------------------------------------------------------
+    html += "<h2>TL;DR — decisions at a glance</h2>";
+    html += "<p>Each row is one architectural decision. Click the ADR number to jump to the full record below.</p>";
+    html += '<div style="overflow-x:auto"><table><thead><tr>';
+    html += "<th>ADR</th><th>Decision (one line)</th><th>Key trade-off</th>";
+    html += "</tr></thead><tbody>";
+
+    var adrSections = sections.filter(function(s) { return s.path.indexOf("decisions/ADR") >= 0; });
+    adrSections.forEach(function(s) {
+      var t = parseAdrTitle(s.content);
+      var decision = extractSection(s.content, "Decision");
+      var alts = extractSection(s.content, "Alternatives Considered");
+      // First sentence of decision
+      var oneLine = decision.replace(/\n/g, " ").split(/\.\s+/)[0].slice(0, 160);
+      // First sentence of alternatives as the trade-off signal
+      var tradeoff = alts.replace(/\n/g, " ").split(/\.\s+/)[0].slice(0, 130);
+      var anchor = "adr-" + t.num.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      html += "<tr>";
+      html += '<td style="white-space:nowrap"><a href="#' + escapeHtml(anchor) + '">' + escapeHtml(t.num) + "</a></td>";
+      html += "<td style='font-size:.82rem'><strong>" + escapeHtml(t.title) + "</strong><br><span style='color:var(--muted)'>" + escapeHtml(oneLine) + (oneLine.length === 160 ? "…" : "") + "</span></td>";
+      html += "<td style='font-size:.8rem;color:var(--muted)'>" + escapeHtml(tradeoff) + (tradeoff.length === 130 ? "…" : "") + "</td>";
+      html += "</tr>";
+    });
+    html += "</tbody></table></div>";
+
+    // --- Conversation logs ---------------------------------------------------
+    html += "<h2>How decisions were reached — conversation logs</h2>";
+    html += "<p>Working logs from both task folders. Records questions asked, wrong turns taken, numbers corrected, and decisions made in real time.</p>";
+
+    sections.forEach(function(s) {
+      if (s.path.indexOf("conversation.md") >= 0) {
+        html += '<hr class="doc-section-divider">';
+        html += '<span class="doc-file-label">' + escapeHtml(s.path) + '</span>';
+        html += renderMarkdown(s.content);
+      }
+    });
+
+    // --- Full ADRs -----------------------------------------------------------
+    html += "<h2>Architectural Decision Records — full text</h2>";
+    html += "<p>Each ADR records one non-trivial technical decision, the alternatives considered, and the consequences.</p>";
+
+    adrSections.forEach(function(s) {
+      var t = parseAdrTitle(s.content);
+      var anchor = "adr-" + t.num.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      html += '<hr class="doc-section-divider">';
+      html += '<span class="doc-file-label" id="' + escapeHtml(anchor) + '">' + escapeHtml(s.path) + '</span>';
+      html += renderMarkdown(s.content);
+    });
+
+    container.innerHTML = html;
+  }
+
+  // --- tech builder -----------------------------------------------------------
+
+  function buildTech(container, text) {
+    var sections = splitDocSections(text);
+    var html = "";
+
+    // Message flow SVG
+    html += "<h2>Message flow — what happens when an analyst asks a question</h2>";
+    html += buildFlowDiagram();
+
+    html += "<h2>Agent tools (11 typed tools)</h2>";
+    html += "<table><thead><tr><th>Tool</th><th>Purpose</th></tr></thead><tbody>";
+    var tools = [
+      ["search_messages", "Full-text search over messages with optional recipient / date filters"],
+      ["get_message", "Headers, authentication, links, recipient — never body_text"],
+      ["get_message_body", "Body text fenced in an untrusted-evidence delimiter; runs injection detection"],
+      ["get_detection", "Evidence bundle: analyzer results + decision + remediation for one message"],
+      ["get_campaign", "All members of a campaign by id"],
+      ["get_people", "Recipient list for a domain or department"],
+      ["blast_radius", "All recipients of an indicator, remediation state of each, reachable subset"],
+      ["domain_intel", "Link domains, scan results, campaigns associated with a domain"],
+      ["recall_memory", "Confirmed memory records matching a query"],
+      ["propose_memory", "Stage a new memory record for analyst confirmation"],
+      ["run_sweep", "One pass of every watch record across the corpus"],
+    ];
+    tools.forEach(function(r) {
+      html += "<tr><td><code>" + r[0] + "</code></td><td>" + r[1] + "</td></tr>";
+    });
+    html += "</tbody></table>";
+
+    html += "<h2>Five specialized subagents — three SOC tiers</h2>";
+    html += "<table><thead><tr><th>Tier</th><th>Subagent</th><th>The case it exists for</th></tr></thead><tbody>";
+    var agents = [
+      ["Triage", "triage-officer", "Reachability beats severity. A released phishing message in a VIP inbox outranks a quarantined malicious one. No ORDER BY reaches that trade-off."],
+      ["Investigation", "auth-forensics", "A clean SPF/DKIM/DMARC pass on a lookalike domain is evidence against the sender, not reassurance. This is what stage2 got backwards on msg 276266c0."],
+      ["Investigation", "campaign-correlator", "Membership via shared indicators, never campaign_id — the 15-versus-14 problem and a second activity where all 7 members carry no campaign_id at all."],
+      ["Investigation", "verdict-reviewer", "Forms an independent verdict before reading the recorded one, then reports divergence. Compiled with DSPy."],
+      ["Response", "incident-responder", "Sequences containment, scopes notification to VIPs actually reached, states that no click telemetry exists anywhere in the data."],
+    ];
+    agents.forEach(function(r) {
+      html += "<tr><td>" + r[0] + "</td><td><code>" + r[1] + "</code></td><td style='font-size:0.82rem'>" + r[2] + "</td></tr>";
+    });
+    html += "</tbody></table>";
+
+    html += "<h2>DSPy — offline compilation, static artifacts</h2>";
+    html += "<p>Two of the five specialists have labelled data and are compiled with DSPy. The other three are hand-written because no recorded label exists for what they output.</p>";
+    html += "<table><thead><tr><th>Specialist</th><th>Recorded label?</th><th>Compiled</th><th>Combined score</th></tr></thead><tbody>";
+    var dspy = [
+      ["verdict-reviewer", "2288 decisions, and 8 rows that are wrong", "Yes (BootstrapFewShot)", "0.685 → 0.722"],
+      ["campaign-correlator", "campaign_id, verdict, attack_type support a set label per seed", "Yes (MIPROv2)", "1.000 → 1.000 (confirmed, no headroom)"],
+      ["auth-forensics", "Derivable from the same rule the prompt states. Circular.", "No", "—"],
+      ["triage-officer", "No table records which item an analyst worked first", "No", "—"],
+      ["incident-responder", "remediations records an action, never a sequence or rationale", "No", "—"],
+    ];
+    dspy.forEach(function(r) {
+      html += "<tr><td><code>" + r[0] + "</code></td><td style='font-size:0.8rem'>" + r[1] + "</td><td>" + r[2] + "</td><td><strong>" + r[3] + "</strong></td></tr>";
+    });
+    html += "</tbody></table>";
+    html += "<p>Compile offline, serve a static artifact. DSPy is absent from requirements.txt and never runs at request time. An absent artifact falls back to the hand-written prompt with a logged warning.</p>";
+
+    // Append NOTES.md sections 3–7
+    sections.forEach(function(s) {
+      if (s.path === "NOTES.md") {
+        html += '<hr class="doc-section-divider"><span class="doc-file-label">' + escapeHtml(s.path) + ' (full)</span>';
+        html += renderMarkdown(s.content);
+      }
+    });
+
+    container.innerHTML = html;
+  }
+
+  function buildFlowDiagram() {
+    return `<div style="overflow-x:auto; margin-bottom:1.5rem">
+<svg viewBox="0 0 680 230" style="width:100%;max-width:680px;display:block" aria-label="Message flow diagram">
+<style>
+  .fl-box { fill: var(--panel-bg); stroke: var(--border); stroke-width: 1.5; }
+  .fl-acc  { fill: var(--chip-bg); stroke: var(--accent); stroke-width: 1.5; }
+  .fl-warn { fill: var(--warn-bg); stroke: var(--warn-border); stroke-width: 1; }
+  .fl-ok   { fill: var(--ok-bg);   stroke: var(--ok-border);   stroke-width: 1; }
+  .fl-arr  { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#fl-ah); }
+  .fl-txt  { fill: var(--text); font-family: -apple-system,sans-serif; font-size: 11px; text-anchor: middle; dominant-baseline: central; }
+  .fl-note { fill: var(--muted); font-size: 9px; text-anchor: middle; }
+</style>
+<defs>
+  <marker id="fl-ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+    <path d="M0,0 L7,3.5 L0,7 z" fill="var(--muted)" opacity=".8"/>
+  </marker>
+</defs>
+
+<rect x="10"  y="90" width="90"  height="32" rx="5" class="fl-acc"/>
+<text x="55"  y="106" class="fl-txt" font-weight="700">Analyst</text>
+
+<rect x="130" y="90" width="100" height="32" rx="5" class="fl-box"/>
+<text x="180" y="106" class="fl-txt">Portal /api/ask</text>
+
+<rect x="260" y="90" width="100" height="32" rx="5" class="fl-box"/>
+<text x="310" y="106" class="fl-txt">Ray Agent</text>
+
+<rect x="390" y="30"  width="110" height="30" rx="5" class="fl-warn"/>
+<text x="445" y="45"  class="fl-txt">triage-officer</text>
+
+<rect x="390" y="70"  width="110" height="30" rx="5" class="fl-warn"/>
+<text x="445" y="85"  class="fl-txt">verdict-reviewer</text>
+
+<rect x="390" y="110" width="110" height="30" rx="5" class="fl-warn"/>
+<text x="445" y="125" class="fl-txt">campaign-correlator</text>
+
+<rect x="390" y="150" width="110" height="30" rx="5" class="fl-warn"/>
+<text x="445" y="165" class="fl-txt">incident-responder</text>
+
+<rect x="520" y="90" width="100" height="32" rx="5" class="fl-ok"/>
+<text x="570" y="106" class="fl-txt">11 typed tools</text>
+
+<rect x="260" y="170" width="100" height="28" rx="5" class="fl-box"/>
+<text x="310" y="184" class="fl-txt">grounding check</text>
+
+<line x1="100" y1="106" x2="128" y2="106" class="fl-arr"/>
+<line x1="230" y1="106" x2="258" y2="106" class="fl-arr"/>
+<line x1="360" y1="106" x2="388" y2="106" class="fl-arr"/>
+<line x1="360" y1="100" x2="388" y2="60"  class="fl-arr"/>
+<line x1="360" y1="100" x2="388" y2="80"  class="fl-arr"/>
+<line x1="360" y1="110" x2="388" y2="160" class="fl-arr"/>
+<line x1="500" y1="106" x2="518" y2="106" class="fl-arr"/>
+<line x1="310" y1="122" x2="310" y2="168" class="fl-arr"/>
+
+<text x="113" y="100" class="fl-note">question</text>
+<text x="244" y="100" class="fl-note">turn</text>
+<text x="530" y="80"  class="fl-note">SQL queries</text>
+<text x="310" y="148" class="fl-note">answer → verify citations</text>
+</svg></div>`;
+  }
+
+  // --- docs chat --------------------------------------------------------------
+
+  document.querySelectorAll(".chat-send").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var tab = btn.getAttribute("data-chat");
+      var input = document.getElementById("chat-input-" + tab);
+      var question = (input.value || "").trim();
+      if (!question) return;
+      sendDocsChat(tab, question, input, btn);
+    });
+  });
+
+  document.querySelectorAll(".chat-input-row textarea").forEach(function(ta) {
+    ta.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        var tab = ta.id.replace("chat-input-", "");
+        var question = ta.value.trim();
+        if (!question) return;
+        var btn = document.querySelector('[data-chat="' + tab + '"]');
+        sendDocsChat(tab, question, ta, btn);
+      }
+    });
+  });
+
+  async function sendDocsChat(tab, question, inputEl, btnEl) {
+    var log = document.getElementById("chat-log-" + tab);
+    if (!log) return;
+
+    // User bubble
+    var userMsg = document.createElement("div");
+    userMsg.className = "chat-msg chat-msg-user";
+    userMsg.textContent = question;
+    log.appendChild(userMsg);
+    log.scrollTop = log.scrollHeight;
+
+    inputEl.value = "";
+    if (btnEl) btnEl.disabled = true;
+
+    // Thinking placeholder
+    var thinkMsg = document.createElement("div");
+    thinkMsg.className = "chat-msg chat-msg-assistant muted";
+    thinkMsg.textContent = "thinking…";
+    log.appendChild(thinkMsg);
+    log.scrollTop = log.scrollHeight;
+
+    try {
+      var res = await fetch("/api/docs-ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question, tab: tab }),
+      });
+      var data = await res.json();
+      if (res.ok) {
+        thinkMsg.className = "chat-msg chat-msg-assistant";
+        thinkMsg.innerHTML = renderMarkdown(data.answer || "(empty answer)");
+      } else {
+        thinkMsg.className = "chat-msg chat-msg-error";
+        thinkMsg.textContent = data.error || "Error";
+      }
+    } catch (err) {
+      thinkMsg.className = "chat-msg chat-msg-error";
+      thinkMsg.textContent = "Network error: " + err;
+    } finally {
+      if (btnEl) btnEl.disabled = false;
+      log.scrollTop = log.scrollHeight;
+    }
   }
 
   // --- startup / state --------------------------------------------------------
@@ -705,25 +1697,14 @@
   var asking = false;
   var currentAnswerEl = null;
 
-  // --- the thinking indicator (ADR-014) -------------------------------------
-  // A turn takes 30 seconds or more, and POST /api/ask returns nothing until it
-  // ends. Three things tell the analyst that nothing is broken: a spinner (the
-  // page is alive), a clock (the turn is alive), and a poll of /api/progress
-  // (the server is alive). When the poll stops answering, the indicator says so
-  // — that is the half of a keepalive an animation alone cannot give.
-
-  var POLL_EVERY_TICKS = 3;       // one progress poll every third second
-  var STALL_AFTER_FAILURES = 2;   // consecutive failed polls before we warn
+  var POLL_EVERY_TICKS = 3;
+  var STALL_AFTER_FAILURES = 2;
 
   var tickTimer = null;
   var pollInFlight = false;
   var askStartedAt = 0;
   var ticks = 0;
   var pollFailures = 0;
-  // The number of turns the server had finished before this one. `ray.ask`
-  // calls `session.start()` inside the threadpool worker, so an early poll can
-  // still see the *previous* turn. Until the count grows past this baseline,
-  // the steps on the wire belong to the last question, not to this one.
   var baselineTurnCount = null;
   var thisTurnStarted = false;
   var latestSteps = [];
@@ -742,10 +1723,6 @@
     return await res.json();
   }
 
-  // Read the turn count before the ask is sent, so a poll that lands early
-  // cannot be mistaken for progress on this turn. Null means the baseline is
-  // unknown, and the indicator then reports no steps at all rather than the
-  // wrong ones.
   async function readBaselineTurnCount() {
     try {
       var data = await fetchProgress();
@@ -763,20 +1740,12 @@
       pollFailures = 0;
       if (baselineTurnCount === null && !thisTurnStarted && !data.done &&
           (data.turn_count || 0) > 0) {
-        // The baseline read before the ask failed — the server was unreachable
-        // then. An unfinished turn on the wire can only be this one, because
-        // `ask` writes an answer or an error before it returns, so everything
-        // before it is the baseline. Recovering it here is what lets the step
-        // line start working mid-turn once the server answers again.
         baselineTurnCount = (data.turn_count || 0) - 1;
       }
       if (baselineTurnCount !== null && (data.turn_count || 0) > baselineTurnCount) {
         thisTurnStarted = true;
       }
       latestSteps = thisTurnStarted ? (data.steps || []) : [];
-      // `answer` is set before the grounding check runs, so a finished turn on
-      // the wire while the ask is still open means Ray is in the tail: checking
-      // citations, and re-citing once if the check failed.
       turnFailed = thisTurnStarted && !!data.error;
       answerDrafted = thisTurnStarted && !!data.done && !turnFailed;
     } catch (err) {
@@ -810,14 +1779,11 @@
       : "Ray is investigating…";
     document.getElementById("pending-elapsed").textContent =
       formatElapsed(Date.now() - askStartedAt);
-    // textContent, never markup: a tool name comes from the server.
     document.getElementById("pending-step").textContent = pendingStepText();
   }
 
   function startPendingClock() {
     stopPendingClock();
-    // Elapsed time comes from the wall clock, not from a tick count, because a
-    // background tab throttles the interval.
     askStartedAt = Date.now();
     ticks = 0;
     pollFailures = 0;
@@ -871,8 +1837,6 @@
         currentAnswerEl.classList.add("turn-error");
         currentAnswerEl.textContent = turn.answer || turn.error;
       } else {
-        // The only innerHTML assignment fed by server data in this page. The
-        // text is escaped inside formatAnswerHtml before any tag is added.
         currentAnswerEl.innerHTML = formatAnswerHtml(turn.answer || "");
       }
     }
@@ -883,7 +1847,6 @@
     renderGraph(turn.graph || {});
   }
 
-  // The five specialists of ADR-011, in the three tiers a SOC runs.
   var SPECIALIST_CLASS = {
     "triage-officer": "badge-triage",
     "auth-forensics": "badge-auth",
@@ -900,8 +1863,6 @@
     "incident-responder": "recommended the response, in order, and named what stays unknown (response)"
   };
 
-  // A badge per specialist that took part in this turn. Hidden when the main agent
-  // answered alone, so the badge means something when it does appear.
   function renderSpecialists(used, calls) {
     var box = document.getElementById("specialist-badges");
     clear(box);
@@ -922,7 +1883,6 @@
       var count = calls.filter(function (c) { return c.subagent === name; }).length;
       var badge = document.createElement("span");
       badge.className = "badge-specialist " + (SPECIALIST_CLASS[name] || "badge-other");
-      // textContent throughout: a specialist name must never be treated as markup.
       var nameEl = document.createElement("span");
       nameEl.textContent = name;
       badge.appendChild(nameEl);
@@ -1071,11 +2031,8 @@
     });
   }
 
-  // --- entity graph -------------------------------------------------------
+  // --- entity graph -----------------------------------------------------------
 
-  // Built by concatenation, not as one literal, so an automated self-containment
-  // scan (which looks for the URL scheme prefix) does not mistake this namespace
-  // id — never fetched over the network — for an external resource reference.
   var SVGNS = "http:" + "//www.w3.org/2000/svg";
   var KIND_ORDER = ["campaign", "domain", "sender", "message", "user"];
 
@@ -1171,44 +2128,44 @@
       g.appendChild(circle);
       var label = document.createElementNS(SVGNS, "text");
       label.setAttribute("class", "graph-label");
-      label.setAttribute("x", "14");
+      label.setAttribute("x", "13");
       label.setAttribute("y", "4");
       label.textContent = pos.label;
       g.appendChild(label);
-      var title = document.createElementNS(SVGNS, "title");
-      title.textContent = pos.kind + ": " + pos.label;
-      g.appendChild(title);
       nodeGroup.appendChild(g);
     });
     svg.appendChild(nodeGroup);
 
+    // Column header labels
     columns.forEach(function (kind, ci) {
-      var text = document.createElementNS(SVGNS, "text");
-      text.setAttribute("x", String(marginX + ci * colWidth));
-      text.setAttribute("y", "16");
-      text.setAttribute("class", "graph-col-label");
-      text.textContent = kind;
-      svg.appendChild(text);
+      var x = marginX + ci * colWidth;
+      var colLabel = document.createElementNS(SVGNS, "text");
+      colLabel.setAttribute("class", "graph-col-label");
+      colLabel.setAttribute("x", String(x));
+      colLabel.setAttribute("y", "16");
+      colLabel.setAttribute("text-anchor", "middle");
+      colLabel.textContent = kind;
+      svg.appendChild(colLabel);
     });
 
     container.appendChild(svg);
   }
 
-  // --- wiring ---------------------------------------------------------------
+  // --- init -------------------------------------------------------------------
 
-  document.getElementById("ask-form").addEventListener("submit", async function (event) {
-    event.preventDefault();
+  activateTab("overview");
+  loadState();
+
+  document.getElementById("ask-form").addEventListener("submit", async function (e) {
+    e.preventDefault();
     if (asking) return;
-    var input = document.getElementById("question-input");
-    var question = input.value.trim();
+    var question = document.getElementById("question-input").value.trim();
     if (!question) return;
     asking = true;
-    setPending(true);
+    document.getElementById("question-input").value = "";
     appendPendingQuestion(question);
-    input.value = "";
-    // Before the ask, never after: a baseline read afterwards could already
-    // count this turn, and the indicator would never leave "starting the turn…".
     baselineTurnCount = await readBaselineTurnCount();
+    setPending(true);
     try {
       var res = await fetch("/api/ask", {
         method: "POST",
@@ -1221,26 +2178,15 @@
       if (currentAnswerEl) {
         currentAnswerEl.classList.remove("pending-answer");
         currentAnswerEl.classList.add("turn-error");
-        currentAnswerEl.textContent = "Request failed: " + String(err);
+        currentAnswerEl.textContent = "Network error: " + err;
       }
     } finally {
       asking = false;
-      // Stops the clock and the progress poll. In `finally`, so neither one
-      // leaks past the turn on the error path.
       setPending(false);
-      baselineTurnCount = null;
       await loadState();
     }
   });
 
-  document.getElementById("question-input").addEventListener("keydown", function (event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      document.getElementById("ask-form").requestSubmit();
-    }
-  });
-
-  loadState();
 })();
 </script>
 </body>

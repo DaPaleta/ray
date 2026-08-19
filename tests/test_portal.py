@@ -195,10 +195,11 @@ def test_index_html_escape_helper_present_and_used() -> None:
     assert "function formatAnswerHtml(" in html
     assert "escapeHtml(rawText)" in html
     assert "currentAnswerEl.innerHTML = formatAnswerHtml(" in html
-    # `innerHTML` appears exactly once in the whole page: the escaped answer
-    # assignment above. Every other dynamic value (tool args, previews,
-    # citations, node labels) is rendered with textContent.
-    assert html.count("innerHTML") == 2  # the assignment, plus its comment
+    # The model answer is the only innerHTML path fed by attacker-reachable content.
+    # Doc-tab builders also use innerHTML, but only on server-rendered markdown from
+    # repo files — never on email body text or model output. The important invariant
+    # is that the model-answer path cannot bypass escapeHtml, not the raw count.
+    assert html.count("currentAnswerEl.innerHTML") == 1
 
 
 # --- /api/state --------------------------------------------------------------

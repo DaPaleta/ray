@@ -47,8 +47,10 @@ ray/
 │   │   └── correlation.py          The set metric, the seeds, and the three shortcut baselines. See ADR-012.
 │   └── portal/
 │       ├── app.py                FastAPI application. Serves the page, the ask endpoint,
-│       │                         and the progress poll behind the thinking indicator.
-│       └── index.html            The single-page portal. Self-contained. Renders the graph.
+│       │                         the progress poll, and the docs endpoints (ADR-015).
+│       └── index.html            The single-page portal. Self-contained. Five tabs:
+│                                 Overview, Execution, Conversations & Decisions,
+│                                 Deep Tech Dive, and Analyst (live interrogation).
 │
 ├── scripts/
 │   └── record_transcripts.py     Records the transcripts/ deliverable reproducibly.
@@ -64,7 +66,7 @@ ray/
     ├── home-task-brief.pdf       The original brief.
     ├── decisions/                Architecture decision records. ADR-NNN-short-title.md.
     └── tasks/<task-name>/          ray-email-threat-investigator, ray-soc-role-subagents,
-                                    portal-thinking-indicator.
+                                    portal-thinking-indicator, portal-visibility.
         ├── plan.md               Context, approach, scope, risks, acceptance criteria.
         ├── progress.md           Running implementation log.
         └── conversation.md       Decisions, questions, and analyst guidance.

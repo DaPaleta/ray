@@ -12,8 +12,13 @@ The organization is Acme Robotics. The primary domain is `acme.com`.
 ## Status
 
 Complete and working. **252 tests pass with no API key**, 11 tools, 5 specialist
-subagents in the three tiers a SOC runs, 8 recorded transcripts, and two compiled
-specialist prompts.
+subagents in the three tiers a SOC runs, 8 recorded transcripts, two compiled
+specialist prompts, and 15 ADRs.
+
+The portal now opens on the **Overview** tab with four visibility pages:
+Overview (architecture + core features), Execution (all 8 transcripts),
+Conversations & Decisions (ADRs and conversation logs), and Deep Tech Dive
+(tools, subagents, DSPy, message flow). Each tab has a side-panel docs assistant.
 
 `NOTES.md` is the submission write-up and the best place to start.
 `docs/tasks/ray-email-threat-investigator/progress.md` opens with a "Current state"
